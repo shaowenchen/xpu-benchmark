@@ -1,129 +1,158 @@
 # XPU Benchmark
 
-一个用于测试 GPU 和 NPU 性能的基准测试工具，支持 NVIDIA GPU 和华为 Ascend NPU。
+A benchmark tool for testing GPU and NPU performance, supporting NVIDIA GPU and Huawei Ascend NPU.
 
-## 快速开始
+## Quick Start
 
-### 1. 一键安装
+### 1. Clone Repository
+
 ```bash
-# 克隆项目
-git clone https://github.com/your-repo/xpu-benchmark.git
+git clone https://github.com/shaowenchen/xpu-benchmark.git
 cd xpu-benchmark
-
-# 一键安装所有依赖
-./install.sh
 ```
 
-### 2. 激活环境
+### 2. Install Dependencies
+
 ```bash
-source activate_env.sh
-```
-
-### 3. 运行测试
-```bash
-# 运行 GPU 测试
-./scripts/run_gpu_tests.sh
-
-# 运行 NPU 测试
-./scripts/run_npu_tests.sh
-```
-
-## 支持的测试
-
-### GPU 测试 (NVIDIA)
-- **训练**: ResNet50 PyTorch
-- **推理**: BERT TensorFlow Serving
-- **压力测试**: 内存带宽测试
-
-### NPU 测试 (华为 Ascend)
-- **训练**: ResNet50 MindSpore
-- **推理**: BERT MindSpore
-- **压力测试**: 内存带宽测试
-
-## 安装选项
-
-### 完整安装
-```bash
-./scripts/install_dependencies.sh
-```
-
-### 选择性安装
-```bash
-# 只安装 GPU 依赖
-./scripts/install_dependencies.sh --gpu
-
-# 只安装 NPU 依赖
-./scripts/install_dependencies.sh --npu
-
-# 安装开发依赖
-./scripts/install_dependencies.sh --dev
-```
-
-### 手动安装
-```bash
-# 创建虚拟环境
+# Create virtual environment (recommended)
 python3 -m venv venv
-source venv/bin/activate
+source venv/bin/activate  # Linux/macOS
+# or
+venv\Scripts\activate     # Windows
 
-# 安装依赖
+# Install dependencies
 pip install -r benchmarks/requirements.txt
 ```
 
-## 系统要求
+### 3. Run Tests
 
-- **操作系统**: Linux (Ubuntu 18.04+, CentOS 7+), macOS 10.15+
+```bash
+# Run GPU tests
+./scripts/run_gpu_tests.sh
+
+# Run NPU tests
+./scripts/run_npu_tests.sh
+```
+
+## Supported Tests
+
+### GPU Tests (NVIDIA)
+
+- **Training**: ResNet50 PyTorch
+- **Inference**: BERT TensorFlow Serving
+- **Stress Test**: Memory Bandwidth Test
+
+### NPU Tests (Huawei Ascend)
+
+- **Training**: ResNet50 MindSpore
+- **Inference**: BERT MindSpore
+- **Stress Test**: Memory Bandwidth Test
+
+## Installation Options
+
+### Manual Installation
+
+```bash
+# Create virtual environment
+python3 -m venv venv
+source venv/bin/activate
+
+# Install dependencies
+pip install -r benchmarks/requirements.txt
+```
+
+### Selective Installation
+
+```bash
+# Install GPU-related dependencies
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+pip install tensorflow transformers datasets
+
+# Install NPU-related dependencies
+pip install mindspore mindinsight mindarmour mindspore-hub
+
+# Install common dependencies
+pip install numpy psutil pyyaml
+```
+
+## System Requirements
+
+- **Operating System**: Linux (Ubuntu 18.04+, CentOS 7+), macOS 10.15+
 - **Python**: 3.8+
-- **GPU**: NVIDIA GPU (支持 CUDA 11.0+)
-- **NPU**: 华为 Ascend NPU (支持 MindSpore 1.8+)
-- **内存**: 至少 8GB RAM
-- **存储**: 至少 10GB 可用空间
+- **GPU**: NVIDIA GPU (CUDA 11.0+ supported)
+- **NPU**: Huawei Ascend NPU (MindSpore 1.8+ supported)
+- **Memory**: At least 8GB RAM
+- **Storage**: At least 10GB available space
 
-## 项目结构
+## Project Structure
 
 ```
 xpu-benchmark/
-├── benchmarks/           # 基准测试脚本
-│   ├── gpu/             # GPU 测试
-│   │   ├── training/    # 训练测试
-│   │   ├── inference/   # 推理测试
-│   │   └── stress/      # 压力测试
-│   ├── npu/             # NPU 测试
-│   │   ├── training/    # 训练测试
-│   │   ├── inference/   # 推理测试
-│   │   └── stress/      # 压力测试
-│   └── requirements.txt # Python 依赖
-├── config/              # 配置文件
-├── scripts/             # 脚本文件
-├── reports/             # 测试报告
-├── docs/                # 文档
-├── install.sh           # 快速安装脚本
-└── INSTALL.md           # 详细安装指南
+├── benchmarks/           # Benchmark scripts
+│   ├── gpu/             # GPU tests
+│   │   ├── training/    # Training tests
+│   │   ├── inference/   # Inference tests
+│   │   └── stress/      # Stress tests
+│   ├── npu/             # NPU tests
+│   │   ├── training/    # Training tests
+│   │   ├── inference/   # Inference tests
+│   │   └── stress/      # Stress tests
+│   └── requirements.txt # Python dependencies
+├── config/              # Configuration files
+├── scripts/             # Script files
+├── reports/             # Test reports
+├── docs/                # Documentation
+├── docker/              # Docker files
+├── tests/               # Test files
+├── xpu_bench/           # Core modules
+└── DOCKER.md            # Docker usage guide
 ```
 
-## 配置
+## Configuration
 
-测试配置位于 `config/` 目录下：
+Test configurations are located in the `config/` directory:
 
-- `config/gpu/nvidia.yaml` - NVIDIA GPU 配置
-- `config/npu/ascend.yaml` - 华为 Ascend NPU 配置
+- `config/gpu/nvidia.yaml` - NVIDIA GPU configuration
+- `config/npu/ascend.yaml` - Huawei Ascend NPU configuration
 
-## 运行单个测试
+## Running Tests
+
+### 1. Activate Environment
 
 ```bash
-# GPU 训练测试
+# If using virtual environment
+source venv/bin/activate  # Linux/macOS
+# or
+venv\Scripts\activate     # Windows
+```
+
+### 2. Run GPU Tests
+
+```bash
+# Run all GPU tests
+./scripts/run_gpu_tests.sh
+
+# Run individual test
 python benchmarks/gpu/training/resnet50_pytorch.py \
     --config config/gpu/nvidia.yaml \
     --output reports/gpu
+```
 
-# NPU 训练测试
+### 3. Run NPU Tests
+
+```bash
+# Run all NPU tests
+./scripts/run_npu_tests.sh
+
+# Run individual test
 python benchmarks/npu/training/resnet50_mindspore.py \
     --config config/npu/ascend.yaml \
     --output reports/npu
 ```
 
-## 结果分析
+## Result Analysis
 
-测试结果保存在 `reports/` 目录下，格式为 JSON：
+Test results are saved in the `reports/` directory in JSON format:
 
 ```json
 {
@@ -139,88 +168,62 @@ python benchmarks/npu/training/resnet50_mindspore.py \
 }
 ```
 
-## 故障排除
+## Troubleshooting
 
-### 常见问题
+### Common Issues
 
-1. **CUDA 版本不匹配**
+1. **CUDA Version Mismatch**
+
    ```bash
    nvcc --version
    pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
    ```
 
-2. **MindSpore 安装失败**
+2. **MindSpore Installation Failed**
+
    ```bash
-   # 参考华为官方文档
+   # Refer to Huawei official documentation
    # https://www.mindspore.cn/install
-   pip install mindspore-cpu  # 测试用
+   pip install mindspore-cpu  # For testing
    ```
 
-3. **权限问题**
+3. **Permission Issues**
    ```bash
    chmod +x scripts/*.sh
-   sudo ./scripts/install_dependencies.sh
    ```
 
-## 贡献
+## Contributing
 
-欢迎提交 Issue 和 Pull Request！
+Welcome to submit Issues and Pull Requests!
 
-## 许可证
+## License
 
 MIT License
 
-## 支持
+## Support
 
-- **文档**: [INSTALL.md](INSTALL.md)
-- **问题反馈**: [GitHub Issues](https://github.com/your-repo/xpu-benchmark/issues)
+- **Documentation**: [DOCKER.md](DOCKER.md)
+- **Issue Feedback**: [GitHub Issues](https://github.com/shaowenchen/xpu-benchmark/issues)
 
-## 运行测试
+## Docker Support
 
-### 1. 激活环境
+### Quick Start (Docker)
+
 ```bash
-source activate_env.sh
-```
-
-### 2. 运行 GPU 测试
-```bash
-# 运行所有 GPU 测试
-./scripts/run_gpu_tests.sh
-
-# 运行单个测试
-python benchmarks/gpu/training/resnet50_pytorch.py \
-    --config config/gpu/nvidia.yaml \
-    --output reports/gpu
-```
-
-### 3. 运行 NPU 测试
-```bash
-# 运行所有 NPU 测试
-./scripts/run_npu_tests.sh
-
-# 运行单个测试
-python benchmarks/npu/training/resnet50_mindspore.py \
-    --config config/npu/ascend.yaml \
-    --output reports/npu
-```
-
-## Docker 支持
-
-### 快速开始（Docker）
-```bash
-# 构建所有 Docker 镜像
+# Build all Docker images
 ./scripts/build-docker.sh build
 
-# 运行 GPU 训练测试
+# Run GPU training test
 ./scripts/build-docker.sh run gpu-training
 
-# 运行 NPU 训练测试
+# Run NPU training test
 ./scripts/build-docker.sh run npu-training
 ```
 
-### 使用 GPU 支持
+### Using GPU Support
+
 ```bash
-# 运行 GPU 测试（需要 NVIDIA Docker 支持）
+# Run GPU tests (requires NVIDIA Docker support)
 docker run --rm \
   --gpus all \
   -v $(pwd)/reports:/app/reports \
@@ -228,17 +231,18 @@ docker run --rm \
   shaowenchen/xpu-benchmark:gpu-training
 ```
 
-### 从 Docker Hub 拉取镜像
+### Pull Images from Docker Hub
+
 ```bash
-# 拉取最新镜像
+# Pull latest images
 docker pull shaowenchen/xpu-benchmark:gpu-training-latest
 docker pull shaowenchen/xpu-benchmark:npu-training-latest
 
-# 运行镜像
+# Run images
 docker run --rm \
   --gpus all \
   -v $(pwd)/reports:/app/reports \
   shaowenchen/xpu-benchmark:gpu-training-latest
 ```
 
-详细说明请查看 [DOCKER.md](DOCKER.md) 
+For detailed instructions, please refer to [DOCKER.md](DOCKER.md)

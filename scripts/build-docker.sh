@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # XPU Benchmark Docker Build Script
-# 本地构建Docker镜像脚本
+# Local Docker image building script
 
 set -e
 
