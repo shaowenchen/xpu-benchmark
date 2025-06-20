@@ -1,35 +1,16 @@
-# NVIDIA GPU Test Configuration
+# NVIDIA GPU Inference Configuration
 hardware:
   type: "nvidia"
   driver_version: "auto"
   cuda_version: "auto"
 
-benchmarks:
-  training:
-    resnet50_pytorch:
-      enabled: true
-      batch_size: 32
-      epochs: 10
-      learning_rate: 0.001
-      optimizer: "adam"
-      dataset: "imagenet"
-      mixed_precision: true
-      
-  inference:
-    bert_tf_serving:
-      enabled: true
-      batch_size: 1
-      sequence_length: 512
-      model_path: "/models/bert-base-uncased"
-      iterations: 1000
-      
-  stress:
-    memory_bandwidth:
-      enabled: true
-      test_duration: 300  # seconds
-      memory_size: "8GB"
-      bandwidth_test: true
-      latency_test: true
+inference:
+  bert_tf_serving:
+    enabled: true
+    batch_size: 1
+    sequence_length: 512
+    model_path: "/models/bert-base-uncased"
+    iterations: 1000
 
 metrics:
   collection_interval: 1  # seconds
@@ -42,11 +23,9 @@ metrics:
   system_metrics:
     - cpu_usage
     - memory_usage
-    - disk_io
-    - network_io
 
 reporting:
-  output_dir: "../reports"
-  format: ["json", "csv", "html"]
+  output_dir: "/app/reports"
+  format: ["json", "csv"]
   generate_plots: true
   save_logs: true 
