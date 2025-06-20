@@ -44,7 +44,7 @@ RUN pip3 install --no-cache-dir \
 
 # Copy benchmark script and config
 COPY memory_bandwidth_test.py .
-COPY config/ascend.yaml ./config.yaml
+COPY config/config.yaml ./config.yaml
 
 # Create output directory
 RUN mkdir -p /app/reports
