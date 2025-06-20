@@ -43,8 +43,8 @@ RUN pip3 install --no-cache-dir \
     pandas
 
 # Copy benchmark script and config
-COPY memory_bandwidth.py .
-COPY ../../../config/npu/ascend.yaml ./config.yaml
+COPY memory_bandwidth_test.py .
+COPY ../../config/npu/ascend.yaml ./config.yaml
 
 # Create output directory
 RUN mkdir -p /app/reports

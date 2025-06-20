@@ -45,7 +45,7 @@ RUN pip3 install --no-cache-dir \
     numpy
 
 # Copy benchmark script and config
-COPY memory_bandwidth.py .
+COPY memory_bandwidth_test.py .
 COPY ../../../config/gpu/nvidia.yaml ./config.yaml
 
 # Create output directory

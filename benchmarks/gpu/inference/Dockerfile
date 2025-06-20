@@ -47,7 +47,7 @@ RUN pip3 install --no-cache-dir \
     uvicorn
 
 # Copy benchmark script and config
-COPY bert_tf_serving.py .
+COPY bert_inference.py .
 COPY ../../../config/gpu/nvidia.yaml ./config.yaml
 
 # Create output directory
@@ -58,4 +58,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD python3 -c "import tensorflow as tf; print('GPU available:', len(tf.config.list_physical_devices('GPU')))" || exit 1
 
 # Set default command
-CMD ["python3", "bert_tf_serving.py", "--config", "config.yaml", "--output", "/app/reports"] 
+CMD ["python3", "bert_inference.py", "--config", "config.yaml", "--output", "/app/reports"] 
