@@ -1,0 +1,14 @@
+# NPU Inference Dependencies
+# Core dependencies
+numpy>=1.21.0
+psutil>=5.8.0
+pyyaml>=6.0
+
+# MindSpore (install according to Huawei's official guide)
+# https://www.mindspore.cn/install
+mindspore>=1.8.0
+
+# MindSpore tools
+mindinsight>=1.8.0
+mindarmour>=1.8.0
+mindspore-hub>=1.8.0 
