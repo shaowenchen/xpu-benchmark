@@ -20,8 +20,19 @@ source venv/bin/activate  # Linux/macOS
 # or
 venv\Scripts\activate     # Windows
 
-# Install dependencies
-pip install -r benchmarks/requirements.txt
+# Option 1: Install all dependencies (recommended for development)
+pip install -r requirements.txt
+
+# Option 2: Install specific dependencies based on your needs
+# For GPU testing
+pip install -r benchmarks/gpu/training/requirements.txt
+pip install -r benchmarks/gpu/inference/requirements.txt
+pip install -r benchmarks/gpu/stress/requirements.txt
+
+# For NPU testing
+pip install -r benchmarks/npu/training/requirements.txt
+pip install -r benchmarks/npu/inference/requirements.txt
+pip install -r benchmarks/npu/stress/requirements.txt
 ```
 
 ### 3. Run Tests
@@ -51,18 +62,24 @@ pip install -r benchmarks/requirements.txt
 ## Installation Options
 
 ### Manual Installation
-
 ```bash
 # Create virtual environment
 python3 -m venv venv
 source venv/bin/activate
 
-# Install dependencies
-pip install -r benchmarks/requirements.txt
+# Install dependencies based on your needs
+# For GPU testing
+pip install -r benchmarks/gpu/training/requirements.txt
+pip install -r benchmarks/gpu/inference/requirements.txt
+pip install -r benchmarks/gpu/stress/requirements.txt
+
+# For NPU testing
+pip install -r benchmarks/npu/training/requirements.txt
+pip install -r benchmarks/npu/inference/requirements.txt
+pip install -r benchmarks/npu/stress/requirements.txt
 ```
 
 ### Selective Installation
-
 ```bash
 # Install GPU-related dependencies
 pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
@@ -105,6 +122,7 @@ xpu-benchmark/
 ├── docker/              # Docker files
 ├── tests/               # Test files
 ├── xpu_bench/           # Core modules
+├── requirements.txt     # Common dependencies
 └── DOCKER.md            # Docker usage guide
 ```
 
@@ -173,14 +191,12 @@ Test results are saved in the `reports/` directory in JSON format:
 ### Common Issues
 
 1. **CUDA Version Mismatch**
-
    ```bash
    nvcc --version
    pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
    ```
 
 2. **MindSpore Installation Failed**
-
    ```bash
    # Refer to Huawei official documentation
    # https://www.mindspore.cn/install
@@ -208,7 +224,6 @@ MIT License
 ## Docker Support
 
 ### Quick Start (Docker)
-
 ```bash
 # Build all Docker images
 ./scripts/build-docker.sh build
@@ -221,7 +236,6 @@ MIT License
 ```
 
 ### Using GPU Support
-
 ```bash
 # Run GPU tests (requires NVIDIA Docker support)
 docker run --rm \
@@ -232,7 +246,6 @@ docker run --rm \
 ```
 
 ### Pull Images from Docker Hub
-
 ```bash
 # Pull latest images
 docker pull shaowenchen/xpu-benchmark:gpu-training-latest
