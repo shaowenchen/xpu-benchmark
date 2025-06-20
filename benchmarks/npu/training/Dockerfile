@@ -47,7 +47,7 @@ RUN pip3 install --no-cache-dir \
 
 # Copy benchmark script and config
 COPY resnet50_mindspore.py .
-COPY ../../../config/npu/ascend.yaml ./config.yaml
+COPY config/ascend.yaml ./config.yaml
 
 # Create output directory
 RUN mkdir -p /app/reports
