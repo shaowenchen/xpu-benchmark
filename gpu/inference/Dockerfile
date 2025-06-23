@@ -32,9 +32,6 @@ RUN pip3 install --no-cache-dir -r requirements.txt
 
 # Install additional useful packages for inference
 RUN pip3 install --no-cache-dir \
-    tensorflow-serving-api \
-    onnxruntime-gpu \
-    opencv-python \
     pillow \
     requests \
     flask \
