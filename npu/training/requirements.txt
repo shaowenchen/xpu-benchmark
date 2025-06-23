@@ -11,4 +11,3 @@ mindspore>=1.8.0
 # MindSpore tools
 mindinsight>=1.8.0
 mindarmour>=1.8.0
-mindspore-hub>=1.8.0
