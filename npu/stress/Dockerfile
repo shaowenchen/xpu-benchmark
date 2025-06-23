@@ -1,28 +1,18 @@
 # NPU Stress Test Dockerfile
-# Based on Huawei Ascend NPU environment
-FROM python:3.11-slim
+# Use Huawei MindSpore official image
+FROM mindspore/mindspore-cpu:2.2.0
 
 # Set environment variables
 ENV DEBIAN_FRONTEND=noninteractive
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
-ENV ASCEND_HOME=/usr/local/Ascend
-ENV PATH=${ASCEND_HOME}/ascend-toolkit/latest/compiler/ccec_compiler/bin:${ASCEND_HOME}/ascend-toolkit/latest/compiler/bin:${ASCEND_HOME}/ascend-toolkit/latest/fwkacllib/bin:${PATH}
-ENV LD_LIBRARY_PATH=${ASCEND_HOME}/ascend-toolkit/latest/fwkacllib/lib64:${ASCEND_HOME}/ascend-toolkit/latest/opp/op_impl/built-in/ai_core/tbe/op_tiling/lib/linux/aarch64:${LD_LIBRARY_PATH}
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
-    build-essential \
-    cmake \
     git \
     wget \
     curl \
     htop \
-    stress-ng \
-    libblas-dev \
-    liblapack-dev \
-    libatlas-base-dev \
-    gfortran \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies with specific versions for better compatibility
@@ -39,8 +29,10 @@ RUN pip3 install --no-cache-dir -r requirements.txt
 RUN pip3 install --no-cache-dir \
     psutil \
     matplotlib \
+    seaborn \
+    pandas \
     numpy \
-    pandas
+    scipy
 
 # Copy benchmark script and config
 COPY memory_bandwidth.py .
