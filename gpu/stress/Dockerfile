@@ -1,29 +1,23 @@
 # GPU Stress Test Dockerfile
-# Use official Python image with CUDA support
-FROM python:3.11-slim
+# Use NVIDIA CUDA runtime image
+FROM nvidia/cuda:12.3.2-runtime-ubuntu22.04
 
 # Set environment variables
 ENV DEBIAN_FRONTEND=noninteractive
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
-ENV CUDA_HOME=/usr/local/cuda
-ENV PATH=${CUDA_HOME}/bin:${PATH}
-ENV LD_LIBRARY_PATH=${CUDA_HOME}/lib64:${LD_LIBRARY_PATH}
 
-# Install system dependencies and CUDA toolkit
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
+    python3 \
+    python3-pip \
+    python3-dev \
     build-essential \
     cmake \
     git \
     wget \
     curl \
     htop \
-    nvtop \
-    nvidia-cuda-toolkit \
-    nvidia-cuda-dev \
-    libcudnn8 \
-    libcudnn8-dev \
-    stress-ng \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies with specific versions for better compatibility
@@ -39,10 +33,11 @@ RUN pip3 install --no-cache-dir -r requirements.txt
 # Install additional useful packages for stress testing
 RUN pip3 install --no-cache-dir \
     psutil \
-    GPUtil \
-    pynvml \
     matplotlib \
-    numpy
+    seaborn \
+    pandas \
+    numpy \
+    scipy
 
 # Copy benchmark script and config
 COPY memory_bandwidth.py .
