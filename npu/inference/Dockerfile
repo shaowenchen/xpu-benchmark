@@ -1,6 +1,6 @@
 # NPU Inference Dockerfile
 # Use Huawei MindSpore official image
-FROM mindspore/mindspore-cpu:2.2.0
+FROM ascendai/pytorch:2.2.0
 
 # Set environment variables
 ENV DEBIAN_FRONTEND=noninteractive
