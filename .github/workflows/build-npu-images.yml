@@ -18,9 +18,10 @@ on:
       image_type:
         description: 'Image type to build'
         required: false
-        default: 'training'
+        default: 'all'
         type: choice
         options:
+          - all
           - training
           - inference
           - stress
@@ -34,12 +35,20 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        image_type: [training]
+        image_type: [training, inference, stress]
         include:
           - image_type: training
             dockerfile: npu/training/Dockerfile
             context: npu/training
             tag: npu-training
+          - image_type: inference
+            dockerfile: npu/inference/Dockerfile
+            context: npu/inference
+            tag: npu-inference
+          - image_type: stress
+            dockerfile: npu/stress/Dockerfile
+            context: npu/stress
+            tag: npu-stress
 
     steps:
     - name: Checkout repository
