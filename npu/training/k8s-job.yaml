@@ -1,0 +1,64 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: npu-training-test
+  namespace: default
+  labels:
+    app: npu-benchmark
+    type: training
+spec:
+  template:
+    metadata:
+      labels:
+        app: npu-benchmark
+        type: training
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: npu-training
+        image: shaowenchen/xpu-benchmark:npu-training-latest
+        imagePullPolicy: Always
+        env:
+        - name: NVIDIA_VISIBLE_DEVICES
+          value: "all"
+        - name: NVIDIA_DRIVER_CAPABILITIES
+          value: "compute,utility"
+        resources:
+          limits:
+            nvidia.com/gpu: 1
+          requests:
+            nvidia.com/gpu: 1
+        volumeMounts:
+        - name: logs-volume
+          mountPath: /app/logs
+        - name: results-volume
+          mountPath: /app/results
+        - name: config-volume
+          mountPath: /app/config.yaml
+          subPath: config.yaml
+      volumes:
+      - name: logs-volume
+        persistentVolumeClaim:
+          claimName: npu-logs-pvc
+      - name: results-volume
+        persistentVolumeClaim:
+          claimName: npu-results-pvc
+      - name: config-volume
+        configMap:
+          name: npu-training-config
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: npu-training-config
+  namespace: default
+data:
+  config.yaml: |
+    # NPU Training Configuration
+    model: resnet50
+    framework: mindspore
+    batch_size: 32
+    epochs: 10
+    learning_rate: 0.001
+    device: npu
+    log_level: INFO 

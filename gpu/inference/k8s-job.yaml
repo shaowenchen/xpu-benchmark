@@ -1,0 +1,63 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: gpu-inference-test
+  namespace: default
+  labels:
+    app: gpu-benchmark
+    type: inference
+spec:
+  template:
+    metadata:
+      labels:
+        app: gpu-benchmark
+        type: inference
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: gpu-inference
+        image: shaowenchen/xpu-benchmark:gpu-inference-latest
+        imagePullPolicy: Always
+        env:
+        - name: NVIDIA_VISIBLE_DEVICES
+          value: "all"
+        - name: NVIDIA_DRIVER_CAPABILITIES
+          value: "compute,utility"
+        resources:
+          limits:
+            nvidia.com/gpu: 1
+          requests:
+            nvidia.com/gpu: 1
+        volumeMounts:
+        - name: logs-volume
+          mountPath: /app/logs
+        - name: results-volume
+          mountPath: /app/results
+        - name: config-volume
+          mountPath: /app/config.yaml
+          subPath: config.yaml
+      volumes:
+      - name: logs-volume
+        persistentVolumeClaim:
+          claimName: gpu-logs-pvc
+      - name: results-volume
+        persistentVolumeClaim:
+          claimName: gpu-results-pvc
+      - name: config-volume
+        configMap:
+          name: gpu-inference-config
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gpu-inference-config
+  namespace: default
+data:
+  config.yaml: |
+    # GPU Inference Configuration
+    model: bert
+    framework: tensorflow
+    batch_size: 16
+    iterations: 100
+    device: gpu
+    log_level: INFO 

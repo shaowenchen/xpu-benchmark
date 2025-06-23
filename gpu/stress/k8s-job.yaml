@@ -1,0 +1,62 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: gpu-stress-test
+  namespace: default
+  labels:
+    app: gpu-benchmark
+    type: stress
+spec:
+  template:
+    metadata:
+      labels:
+        app: gpu-benchmark
+        type: stress
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: gpu-stress
+        image: shaowenchen/xpu-benchmark:gpu-stress-latest
+        imagePullPolicy: Always
+        env:
+        - name: NVIDIA_VISIBLE_DEVICES
+          value: "all"
+        - name: NVIDIA_DRIVER_CAPABILITIES
+          value: "compute,utility"
+        resources:
+          limits:
+            nvidia.com/gpu: 1
+          requests:
+            nvidia.com/gpu: 1
+        volumeMounts:
+        - name: logs-volume
+          mountPath: /app/logs
+        - name: results-volume
+          mountPath: /app/results
+        - name: config-volume
+          mountPath: /app/config.yaml
+          subPath: config.yaml
+      volumes:
+      - name: logs-volume
+        persistentVolumeClaim:
+          claimName: gpu-logs-pvc
+      - name: results-volume
+        persistentVolumeClaim:
+          claimName: gpu-results-pvc
+      - name: config-volume
+        configMap:
+          name: gpu-stress-config
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gpu-stress-config
+  namespace: default
+data:
+  config.yaml: |
+    # GPU Stress Configuration
+    test_type: memory_bandwidth
+    duration: 300
+    iterations: 1000
+    device: gpu
+    log_level: INFO 
