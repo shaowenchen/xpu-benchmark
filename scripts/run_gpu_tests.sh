@@ -1,339 +1,273 @@
 #!/bin/bash
 
 # GPU Test Runner Script
-# Supports NVIDIA GPU testing
+# This script runs GPU benchmark tests
 
 set -e
 
-# Color definitions
+# Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-# Logging functions
-log_info() {
-    echo -e "${GREEN}[INFO]${NC} $1"
+# Configuration
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+CONFIG_DIR="$PROJECT_ROOT/config"
+REPORTS_DIR="$PROJECT_ROOT/reports"
+BENCHMARKS_DIR="gpu"
+
+# Function to print colored output
+print_info() {
+    echo -e "${BLUE}[INFO]${NC} $1"
 }
 
-log_warn() {
-    echo -e "${YELLOW}[WARN]${NC} $1"
+print_success() {
+    echo -e "${GREEN}[SUCCESS]${NC} $1"
 }
 
-log_error() {
+print_warning() {
+    echo -e "${YELLOW}[WARNING]${NC} $1"
+}
+
+print_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
-log_debug() {
-    echo -e "${BLUE}[DEBUG]${NC} $1"
-}
-
-# Default configuration
-CONFIG_DIR="config/gpu"
-REPORTS_DIR="reports"
-BENCHMARKS_DIR="benchmarks/gpu"
-DOCKER_IMAGE="xpu-bench:latest"
-
-# Show help information
-show_help() {
-    echo "Usage: $0 [options]"
-    echo ""
-    echo "Options:"
-    echo "  -h, --help              Show this help information"
-    echo "  -c, --config CONFIG     Specify configuration file (default: auto)"
-    echo "  -t, --type TYPE         Specify GPU type (nvidia)"
-    echo "  -b, --benchmark BENCH   Specify test type (training|inference|stress|all)"
-    echo "  -d, --docker            Use Docker to run tests"
-    echo "  -v, --verbose           Enable verbose output"
-    echo "  -o, --output DIR        Specify output directory"
-    echo ""
-    echo "Examples:"
-    echo "  $0 -t nvidia -b training"
-    echo "  $0 -c config/gpu/nvidia.yaml -b all"
-    echo "  $0 -t nvidia -b inference -d"
-}
-
-# Detect GPU type
-detect_gpu() {
-    if lspci | grep -i nvidia > /dev/null; then
-        echo "nvidia"
-    else
-        echo "unknown"
-    fi
-}
-
-# Validate environment
-validate_environment() {
-    log_info "Validating test environment..."
+# Function to check prerequisites
+check_prerequisites() {
+    print_info "Checking prerequisites..."
     
-    # Check Python environment
+    # Check Python
     if ! command -v python3 &> /dev/null; then
-        log_error "Python3 not installed"
+        print_error "Python 3 is not installed"
         exit 1
     fi
     
-    # Check required Python packages
-    python3 -c "import torch, numpy, psutil" 2>/dev/null || {
-        log_error "Missing required Python packages, please install: torch, numpy, psutil"
+    # Check CUDA
+    if ! command -v nvidia-smi &> /dev/null; then
+        print_warning "NVIDIA GPU not detected or drivers not installed"
+    fi
+    
+    # Check PyTorch
+    if ! python3 -c "import torch; print('CUDA available:', torch.cuda.is_available())" 2>/dev/null; then
+        print_warning "PyTorch not installed or CUDA not available"
+    fi
+    
+    # Check directories
+    if [ ! -d "$BENCHMARKS_DIR" ]; then
+        print_error "Benchmarks directory not found: $BENCHMARKS_DIR"
         exit 1
-    }
+    fi
     
-    # Check GPU drivers
-    GPU_TYPE=$(detect_gpu)
-    case $GPU_TYPE in
-        "nvidia")
-            if ! command -v nvidia-smi &> /dev/null; then
-                log_error "NVIDIA drivers not installed or nvidia-smi not available"
-                exit 1
-            fi
-            ;;
-        *)
-            log_error "No supported GPU detected"
-            exit 1
-            ;;
-    esac
+    if [ ! -d "$CONFIG_DIR" ]; then
+        print_error "Config directory not found: $CONFIG_DIR"
+        exit 1
+    fi
     
-    log_info "Environment validation passed"
+    # Create reports directory
+    mkdir -p "$REPORTS_DIR"
+    
+    print_success "Prerequisites check completed"
 }
 
-# Run training tests
-run_training_tests() {
-    log_info "Running training tests..."
+# Function to run training test
+run_training_test() {
+    print_info "Running GPU training test..."
     
     cd "$BENCHMARKS_DIR/training"
     
-    # Run ResNet50 training test
-    if [[ -f "resnet50_pytorch.py" ]]; then
-        log_info "Running ResNet50 PyTorch training test..."
-        python3 resnet50_pytorch.py --config "../../$CONFIG_FILE" --output "../../$REPORTS_DIR"
-    else
-        log_warn "ResNet50 training test file does not exist"
+    if [ ! -f "resnet50_pytorch.py" ]; then
+        print_error "Training test script not found"
+        return 1
     fi
     
-    cd - > /dev/null
+    python3 resnet50_pytorch.py \
+        --config "$CONFIG_DIR/gpu/nvidia.yaml" \
+        --output "$REPORTS_DIR/gpu_training_results.json"
+    
+    if [ $? -eq 0 ]; then
+        print_success "GPU training test completed"
+    else
+        print_error "GPU training test failed"
+        return 1
+    fi
 }
 
-# Run inference tests
-run_inference_tests() {
-    log_info "Running inference tests..."
+# Function to run inference test
+run_inference_test() {
+    print_info "Running GPU inference test..."
     
     cd "$BENCHMARKS_DIR/inference"
     
-    # Run BERT inference test
-    if [[ -f "bert_tf_serving.py" ]]; then
-        log_info "Running BERT inference test..."
-        python3 bert_tf_serving.py --config "../../$CONFIG_FILE" --output "../../$REPORTS_DIR"
-    else
-        log_warn "BERT inference test file does not exist"
+    if [ ! -f "bert_tf_serving.py" ]; then
+        print_error "Inference test script not found"
+        return 1
     fi
     
-    cd - > /dev/null
+    python3 bert_tf_serving.py \
+        --config "$CONFIG_DIR/gpu/nvidia.yaml" \
+        --output "$REPORTS_DIR/gpu_inference_results.json"
+    
+    if [ $? -eq 0 ]; then
+        print_success "GPU inference test completed"
+    else
+        print_error "GPU inference test failed"
+        return 1
+    fi
 }
 
-# Run stress tests
-run_stress_tests() {
-    log_info "Running stress tests..."
+# Function to run stress test
+run_stress_test() {
+    print_info "Running GPU stress test..."
     
     cd "$BENCHMARKS_DIR/stress"
     
-    # Run memory bandwidth test
-    if [[ -f "memory_bandwidth.py" ]]; then
-        log_info "Running memory bandwidth test..."
-        python3 memory_bandwidth.py --config "../../$CONFIG_FILE" --output "../../$REPORTS_DIR"
-    else
-        log_warn "Memory bandwidth test file does not exist"
+    if [ ! -f "memory_bandwidth.py" ]; then
+        print_error "Stress test script not found"
+        return 1
     fi
     
-    cd - > /dev/null
+    python3 memory_bandwidth.py \
+        --config "$CONFIG_DIR/gpu/nvidia.yaml" \
+        --output "$REPORTS_DIR/gpu_stress_results.json"
+    
+    if [ $? -eq 0 ]; then
+        print_success "GPU stress test completed"
+    else
+        print_error "GPU stress test failed"
+        return 1
+    fi
 }
 
-# Run tests using Docker
-run_docker_tests() {
-    log_info "Running tests using Docker..."
+# Function to run all tests
+run_all_tests() {
+    print_info "Running all GPU tests..."
     
-    # Build Docker image
-    if [[ ! -f "docker/gpu.Dockerfile" ]]; then
-        log_error "Docker file does not exist: docker/gpu.Dockerfile"
+    local failed_tests=0
+    
+    # Run training test
+    if run_training_test; then
+        print_success "Training test passed"
+    else
+        print_error "Training test failed"
+        ((failed_tests++))
+    fi
+    
+    # Run inference test
+    if run_inference_test; then
+        print_success "Inference test passed"
+    else
+        print_error "Inference test failed"
+        ((failed_tests++))
+    fi
+    
+    # Run stress test
+    if run_stress_test; then
+        print_success "Stress test passed"
+    else
+        print_error "Stress test failed"
+        ((failed_tests++))
+    fi
+    
+    # Summary
+    if [ $failed_tests -eq 0 ]; then
+        print_success "All GPU tests completed successfully!"
+    else
+        print_error "$failed_tests test(s) failed"
+        exit 1
+    fi
+}
+
+# Function to run tests in Docker
+run_docker_tests() {
+    print_info "Running GPU tests in Docker..."
+    
+    # Check if Docker is available
+    if ! command -v docker &> /dev/null; then
+        print_error "Docker is not installed"
         exit 1
     fi
     
-    log_info "Building Docker image..."
-    docker build -f docker/gpu.Dockerfile -t $DOCKER_IMAGE .
-    
-    # Run Docker container
-    log_info "Running Docker container..."
+    # Run training test in Docker
+    print_info "Running GPU training test in Docker..."
     docker run --rm \
         --gpus all \
-        -v "$(pwd)/$CONFIG_DIR:/app/config" \
-        -v "$(pwd)/$REPORTS_DIR:/app/reports" \
+        -v "$(pwd)/reports:/app/reports" \
+        -v "$(pwd)/config:/app/config" \
         -v "$(pwd)/$BENCHMARKS_DIR:/app/benchmarks" \
-        $DOCKER_IMAGE \
-        python3 -m xpu_bench.runner --config "/app/$CONFIG_FILE" --benchmark "$BENCHMARK_TYPE"
+        shaowenchen/xpu-benchmark:gpu-training
+    
+    # Run inference test in Docker
+    print_info "Running GPU inference test in Docker..."
+    docker run --rm \
+        --gpus all \
+        -v "$(pwd)/reports:/app/reports" \
+        -v "$(pwd)/config:/app/config" \
+        -v "$(pwd)/$BENCHMARKS_DIR:/app/benchmarks" \
+        shaowenchen/xpu-benchmark:gpu-inference
+    
+    # Run stress test in Docker
+    print_info "Running GPU stress test in Docker..."
+    docker run --rm \
+        --gpus all \
+        -v "$(pwd)/reports:/app/reports" \
+        -v "$(pwd)/config:/app/config" \
+        -v "$(pwd)/$BENCHMARKS_DIR:/app/benchmarks" \
+        shaowenchen/xpu-benchmark:gpu-stress
+    
+    print_success "All Docker tests completed"
 }
 
-# Generate report
-generate_report() {
-    log_info "Generating test report..."
-    
-    cd "$REPORTS_DIR"
-    
-    # Generate HTML report
-    if command -v python3 &> /dev/null; then
-        python3 -c "
-import json
-import os
-from datetime import datetime
-
-# Read test results
-results = {}
-for file in os.listdir('.'):
-    if file.endswith('.json'):
-        with open(file, 'r') as f:
-            results[file] = json.load(f)
-
-# Generate HTML report
-html_content = f'''
-<!DOCTYPE html>
-<html>
-<head>
-    <title>XPU Benchmark Report</title>
-    <style>
-        body {{ font-family: Arial, sans-serif; margin: 20px; }}
-        .header {{ background-color: #f0f0f0; padding: 10px; border-radius: 5px; }}
-        .result {{ margin: 10px 0; padding: 10px; border: 1px solid #ddd; border-radius: 5px; }}
-        .success {{ background-color: #d4edda; }}
-        .error {{ background-color: #f8d7da; }}
-    </style>
-</head>
-<body>
-    <div class=\"header\">
-        <h1>XPU Benchmark Report</h1>
-        <p>Generated at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
-    </div>
-'''
-
-for test_name, result in results.items():
-    status_class = 'success' if result.get('status') == 'success' else 'error'
-    html_content += f'''
-    <div class=\"result {status_class}\">
-        <h3>{test_name}</h3>
-        <pre>{json.dumps(result, indent=2)}</pre>
-    </div>
-'''
-
-html_content += '''
-</body>
-</html>
-'''
-
-with open('report.html', 'w') as f:
-    f.write(html_content)
-"
-        log_info "HTML report generated: $REPORTS_DIR/report.html"
-    fi
-    
-    cd - > /dev/null
+# Function to show help
+show_help() {
+    echo "GPU Test Runner Script"
+    echo ""
+    echo "Usage: $0 [COMMAND]"
+    echo ""
+    echo "Commands:"
+    echo "  all              Run all GPU tests (default)"
+    echo "  training         Run GPU training test only"
+    echo "  inference        Run GPU inference test only"
+    echo "  stress           Run GPU stress test only"
+    echo "  docker           Run all tests in Docker containers"
+    echo "  help             Show this help message"
+    echo ""
+    echo "Examples:"
+    echo "  $0               # Run all tests"
+    echo "  $0 training      # Run training test only"
+    echo "  $0 docker        # Run tests in Docker"
 }
 
-# Main function
-main() {
-    # Parse command line arguments
-    while [[ $# -gt 0 ]]; do
-        case $1 in
-            -h|--help)
-                show_help
-                exit 0
-                ;;
-            -c|--config)
-                CONFIG_FILE="$2"
-                shift 2
-                ;;
-            -t|--type)
-                GPU_TYPE="$2"
-                shift 2
-                ;;
-            -b|--benchmark)
-                BENCHMARK_TYPE="$2"
-                shift 2
-                ;;
-            -d|--docker)
-                USE_DOCKER=true
-                shift
-                ;;
-            -v|--verbose)
-                VERBOSE=true
-                shift
-                ;;
-            -o|--output)
-                REPORTS_DIR="$2"
-                shift 2
-                ;;
-            *)
-                log_error "Unknown parameter: $1"
-                show_help
-                exit 1
-                ;;
-        esac
-    done
-    
-    # Set default values
-    if [[ -z "$GPU_TYPE" ]]; then
-        GPU_TYPE=$(detect_gpu)
-    fi
-    
-    if [[ -z "$CONFIG_FILE" ]]; then
-        CONFIG_FILE="$CONFIG_DIR/${GPU_TYPE}.yaml"
-    fi
-    
-    if [[ -z "$BENCHMARK_TYPE" ]]; then
-        BENCHMARK_TYPE="all"
-    fi
-    
-    # Validate environment
-    validate_environment
-    
-    # Create output directory
-    mkdir -p "$REPORTS_DIR"
-    
-    log_info "Starting GPU tests..."
-    log_info "GPU type: $GPU_TYPE"
-    log_info "Configuration file: $CONFIG_FILE"
-    log_info "Test type: $BENCHMARK_TYPE"
-    log_info "Output directory: $REPORTS_DIR"
-    
-    # Run tests
-    if [[ "$USE_DOCKER" == "true" ]]; then
+# Main script logic
+case "${1:-all}" in
+    "all")
+        check_prerequisites
+        run_all_tests
+        ;;
+    "training")
+        check_prerequisites
+        run_training_test
+        ;;
+    "inference")
+        check_prerequisites
+        run_inference_test
+        ;;
+    "stress")
+        check_prerequisites
+        run_stress_test
+        ;;
+    "docker")
         run_docker_tests
-    else
-        case $BENCHMARK_TYPE in
-            "training")
-                run_training_tests
-                ;;
-            "inference")
-                run_inference_tests
-                ;;
-            "stress")
-                run_stress_tests
-                ;;
-            "all")
-                run_training_tests
-                run_inference_tests
-                run_stress_tests
-                ;;
-            *)
-                log_error "Unsupported test type: $BENCHMARK_TYPE"
-                exit 1
-                ;;
-        esac
-    fi
-    
-    # Generate report
-    generate_report
-    
-    log_info "GPU tests completed!"
-    log_info "Report location: $REPORTS_DIR"
-}
-
-# Execute main function
-main "$@" 
+        ;;
+    "help"|"-h"|"--help")
+        show_help
+        ;;
+    *)
+        print_error "Unknown command: $1"
+        show_help
+        exit 1
+        ;;
+esac 

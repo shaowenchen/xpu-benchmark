@@ -1,241 +1,118 @@
 # XPU Benchmark
 
-A benchmark tool for testing GPU and NPU performance, supporting NVIDIA GPU and Huawei Ascend NPU.
+A comprehensive benchmarking suite for GPU and NPU performance testing.
 
 ## Quick Start
 
-### 1. Clone Repository
+### Prerequisites
+
+- Python 3.8+
+- CUDA 11.0+ (for GPU tests)
+- MindSpore 1.8+ (for NPU tests)
+
+### Installation
 
 ```bash
+# Clone repository
 git clone https://github.com/shaowenchen/xpu-benchmark.git
 cd xpu-benchmark
-```
 
-### 2. Install Dependencies
-
-```bash
-# Create virtual environment (recommended)
-python3 -m venv venv
-source venv/bin/activate  # Linux/macOS
-# or
-venv\Scripts\activate     # Windows
-
-# Option 1: Install all dependencies (recommended for development)
+# Install base dependencies
 pip install -r requirements.txt
 
-# Option 2: Install specific dependencies based on your needs
-# For GPU testing
-pip install -r benchmarks/gpu/training/requirements.txt
-pip install -r benchmarks/gpu/inference/requirements.txt
-pip install -r benchmarks/gpu/stress/requirements.txt
+# Install GPU dependencies
+pip install -r gpu/training/requirements.txt
+pip install -r gpu/inference/requirements.txt
+pip install -r gpu/stress/requirements.txt
 
-# For NPU testing
-pip install -r benchmarks/npu/training/requirements.txt
-pip install -r benchmarks/npu/inference/requirements.txt
-pip install -r benchmarks/npu/stress/requirements.txt
+# Install NPU dependencies
+pip install -r npu/training/requirements.txt
+pip install -r npu/inference/requirements.txt
+pip install -r npu/stress/requirements.txt
 ```
 
-### 3. Run Tests
+### Running Tests
 
-```bash
-# Run GPU tests
-./scripts/run_gpu_tests.sh
-
-# Run NPU tests
-./scripts/run_npu_tests.sh
-```
-
-## Supported Tests
-
-### GPU Tests (NVIDIA)
-
-- **Training**: ResNet50 PyTorch
-- **Inference**: BERT TensorFlow Serving
-- **Stress Test**: Memory Bandwidth Test
-
-### NPU Tests (Huawei Ascend)
-
-- **Training**: ResNet50 MindSpore
-- **Inference**: BERT MindSpore
-- **Stress Test**: Memory Bandwidth Test
-
-## Installation Options
-
-### Manual Installation
-```bash
-# Create virtual environment
-python3 -m venv venv
-source venv/bin/activate
-
-# Install dependencies based on your needs
-# For GPU testing
-pip install -r benchmarks/gpu/training/requirements.txt
-pip install -r benchmarks/gpu/inference/requirements.txt
-pip install -r benchmarks/gpu/stress/requirements.txt
-
-# For NPU testing
-pip install -r benchmarks/npu/training/requirements.txt
-pip install -r benchmarks/npu/inference/requirements.txt
-pip install -r benchmarks/npu/stress/requirements.txt
-```
-
-### Selective Installation
-```bash
-# Install GPU-related dependencies
-pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
-pip install tensorflow transformers datasets
-
-# Install NPU-related dependencies
-pip install mindspore mindinsight mindarmour mindspore-hub
-
-# Install common dependencies
-pip install numpy psutil pyyaml
-```
-
-## System Requirements
-
-- **Operating System**: Linux (Ubuntu 18.04+, CentOS 7+), macOS 10.15+
-- **Python**: 3.8+
-- **GPU**: NVIDIA GPU (CUDA 11.0+ supported)
-- **NPU**: Huawei Ascend NPU (MindSpore 1.8+ supported)
-- **Memory**: At least 8GB RAM
-- **Storage**: At least 10GB available space
-
-## Project Structure
-
-```
-xpu-benchmark/
-├── benchmarks/           # Benchmark scripts
-│   ├── gpu/             # GPU tests
-│   │   ├── training/    # Training tests
-│   │   ├── inference/   # Inference tests
-│   │   └── stress/      # Stress tests
-│   ├── npu/             # NPU tests
-│   │   ├── training/    # Training tests
-│   │   ├── inference/   # Inference tests
-│   │   └── stress/      # Stress tests
-│   └── requirements.txt # Python dependencies
-├── config/              # Configuration files
-├── scripts/             # Script files
-├── reports/             # Test reports
-├── docs/                # Documentation
-├── docker/              # Docker files
-├── tests/               # Test files
-├── xpu_bench/           # Core modules
-├── requirements.txt     # Common dependencies
-└── DOCKER.md            # Docker usage guide
-```
-
-## Configuration
-
-Test configurations are located in the `config/` directory:
-
-- `config/gpu/nvidia.yaml` - NVIDIA GPU configuration
-- `config/npu/ascend.yaml` - Huawei Ascend NPU configuration
-
-## Running Tests
-
-### 1. Activate Environment
-
-```bash
-# If using virtual environment
-source venv/bin/activate  # Linux/macOS
-# or
-venv\Scripts\activate     # Windows
-```
-
-### 2. Run GPU Tests
+#### GPU Tests
 
 ```bash
 # Run all GPU tests
-./scripts/run_gpu_tests.sh
+python -m xpu_bench.runner --config config/gpu/nvidia.yaml
 
-# Run individual test
-python benchmarks/gpu/training/resnet50_pytorch.py \
-    --config config/gpu/nvidia.yaml \
-    --output reports/gpu
+# Run specific GPU test
+python gpu/training/resnet50_pytorch.py --config config/gpu/nvidia.yaml
 ```
 
-### 3. Run NPU Tests
+#### NPU Tests
 
 ```bash
 # Run all NPU tests
-./scripts/run_npu_tests.sh
+python -m xpu_bench.runner --config config/npu/ascend.yaml
 
-# Run individual test
-python benchmarks/npu/training/resnet50_mindspore.py \
-    --config config/npu/ascend.yaml \
-    --output reports/npu
+# Run specific NPU test
+python npu/training/resnet50_mindspore.py --config config/npu/ascend.yaml
 ```
 
-## Result Analysis
+## Docker Usage
 
-Test results are saved in the `reports/` directory in JSON format:
+### Building Images
 
-```json
-{
-  "test_name": "resnet50_pytorch_training",
-  "hardware_type": "nvidia_gpu",
-  "total_time": 120.5,
-  "epochs": 10,
-  "batch_size": 32,
-  "device": "cuda:0",
-  "training_metrics": [...],
-  "status": "success",
-  "timestamp": "2024-01-01T12:00:00"
-}
-```
-
-## Troubleshooting
-
-### Common Issues
-
-1. **CUDA Version Mismatch**
-   ```bash
-   nvcc --version
-   pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
-   ```
-
-2. **MindSpore Installation Failed**
-   ```bash
-   # Refer to Huawei official documentation
-   # https://www.mindspore.cn/install
-   pip install mindspore-cpu  # For testing
-   ```
-
-3. **Permission Issues**
-   ```bash
-   chmod +x scripts/*.sh
-   ```
-
-## Contributing
-
-Welcome to submit Issues and Pull Requests!
-
-## License
-
-MIT License
-
-## Support
-
-- **Documentation**: [DOCKER.md](DOCKER.md)
-- **Issue Feedback**: [GitHub Issues](https://github.com/shaowenchen/xpu-benchmark/issues)
-
-## Docker Support
-
-### Quick Start (Docker)
 ```bash
-# Build all Docker images
+# Build all images
 ./scripts/build-docker.sh build
 
-# Run GPU training test
+# Build specific type of images
+./scripts/build-docker.sh build gpu          # Build all GPU images
+./scripts/build-docker.sh build npu          # Build all NPU images
+./scripts/build-docker.sh build gpu-training # Build GPU training image
+
+# List built images
+./scripts/build-docker.sh list
+
+# Run image
 ./scripts/build-docker.sh run gpu-training
+```
+
+### Manual Building
+
+```bash
+# GPU training image
+docker build -f gpu/training/Dockerfile -t shaowenchen/xpu-benchmark:gpu-training gpu/training/
+
+# GPU inference image
+docker build -f gpu/inference/Dockerfile -t shaowenchen/xpu-benchmark:gpu-inference gpu/inference/
+
+# GPU stress test image
+docker build -f gpu/stress/Dockerfile -t shaowenchen/xpu-benchmark:gpu-stress gpu/stress/
+
+# NPU training image
+docker build -f npu/training/Dockerfile -t shaowenchen/xpu-benchmark:npu-training npu/training/
+
+# NPU inference image
+docker build -f npu/inference/Dockerfile -t shaowenchen/xpu-benchmark:npu-inference npu/inference/
+
+# NPU stress test image
+docker build -f npu/stress/Dockerfile -t shaowenchen/xpu-benchmark:npu-stress npu/stress/
+```
+
+### Running Containers
+
+```bash
+# Run GPU training test
+docker run --rm \
+  -v $(pwd)/reports:/app/reports \
+  -v $(pwd)/config:/app/config \
+  shaowenchen/xpu-benchmark:gpu-training
 
 # Run NPU training test
-./scripts/build-docker.sh run npu-training
+docker run --rm \
+  -v $(pwd)/reports:/app/reports \
+  -v $(pwd)/config:/app/config \
+  shaowenchen/xpu-benchmark:npu-training
 ```
 
 ### Using GPU Support
+
 ```bash
 # Run GPU tests (requires NVIDIA Docker support)
 docker run --rm \
@@ -245,17 +122,128 @@ docker run --rm \
   shaowenchen/xpu-benchmark:gpu-training
 ```
 
-### Pull Images from Docker Hub
-```bash
-# Pull latest images
-docker pull shaowenchen/xpu-benchmark:gpu-training-latest
-docker pull shaowenchen/xpu-benchmark:npu-training-latest
+## Project Structure
 
-# Run images
-docker run --rm \
-  --gpus all \
-  -v $(pwd)/reports:/app/reports \
-  shaowenchen/xpu-benchmark:gpu-training-latest
+```
+xpu-benchmark/
+├── config/              # Configuration files
+│   ├── gpu/            # GPU configurations
+│   └── npu/            # NPU configurations
+├── gpu/                # GPU benchmark scripts
+│   ├── training/       # Training benchmarks
+│   ├── inference/      # Inference benchmarks
+│   └── stress/         # Stress tests
+├── npu/                # NPU benchmark scripts
+│   ├── training/       # Training benchmarks
+│   ├── inference/      # Inference benchmarks
+│   └── stress/         # Stress tests
+├── xpu_bench/          # Core framework
+├── scripts/            # Utility scripts
+├── reports/            # Test results
+└── tests/              # Unit tests
 ```
 
-For detailed instructions, please refer to [DOCKER.md](DOCKER.md)
+## Configuration
+
+### GPU Configuration (config/gpu/nvidia.yaml)
+
+```yaml
+hardware:
+  type: "nvidia"
+  driver_version: "auto"
+  cuda_version: "auto"
+
+benchmarks:
+  training:
+    resnet50_pytorch:
+      enabled: true
+      batch_size: 32
+      epochs: 10
+      learning_rate: 0.001
+      optimizer: "adam"
+      dataset: "imagenet"
+      mixed_precision: true
+```
+
+### NPU Configuration (config/npu/ascend.yaml)
+
+```yaml
+hardware:
+  type: "ascend"
+  driver_version: "auto"
+  cann_version: "auto"
+
+benchmarks:
+  training:
+    resnet50_mindspore:
+      enabled: true
+      batch_size: 32
+      epochs: 10
+      learning_rate: 0.001
+      optimizer: "adam"
+      dataset: "imagenet"
+      mixed_precision: true
+```
+
+## Running Individual Tests
+
+### GPU Training Test
+
+```bash
+python gpu/training/resnet50_pytorch.py \
+  --config config/gpu/nvidia.yaml \
+  --output reports/gpu_training_results.json
+```
+
+### NPU Training Test
+
+```bash
+python npu/training/resnet50_mindspore.py \
+  --config config/npu/ascend.yaml \
+  --output reports/npu_training_results.json
+```
+
+## Test Results
+
+Test results are saved in the `reports/` directory in multiple formats:
+
+- **JSON**: Machine-readable format for further processing
+- **CSV**: Spreadsheet-compatible format
+- **HTML**: Human-readable reports with charts
+
+### Example Output
+
+```json
+{
+  "test_name": "resnet50_pytorch",
+  "hardware": "nvidia",
+  "timestamp": "2024-01-15T10:30:00Z",
+  "metrics": {
+    "throughput": 156.7,
+    "latency": 6.38,
+    "accuracy": 0.945,
+    "power_consumption": 245.3
+  },
+  "configuration": {
+    "batch_size": 32,
+    "epochs": 10,
+    "learning_rate": 0.001
+  }
+}
+```
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests if applicable
+5. Submit a pull request
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Support
+
+For questions and support, please open an issue on GitHub or contact the maintainers.
