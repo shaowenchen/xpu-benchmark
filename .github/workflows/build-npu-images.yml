@@ -55,13 +55,6 @@ jobs:
         docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:npu-training-latest-amd64
       shell: bash
 
-    - name: Build summary amd64
-      if: always()
-      run: |
-        echo "Built amd64 image: npu-training-latest-amd64"
-        echo "Platform: linux/amd64"
-        echo "Context: npu/training"
-
   build-inference-amd64:
     runs-on: ubuntu-latest
     needs: build-amd64
@@ -83,13 +76,6 @@ jobs:
         docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:npu-inference-latest-amd64
       shell: bash
 
-    - name: Build summary amd64 inference
-      if: always()
-      run: |
-        echo "Built amd64 image: npu-inference-latest-amd64"
-        echo "Platform: linux/amd64"
-        echo "Context: npu/inference"
-
   build-stress-amd64:
     runs-on: ubuntu-latest
     needs: build-inference-amd64
@@ -110,13 +96,6 @@ jobs:
         docker build --platform linux/amd64 -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:npu-stress-latest-amd64 -f npu/stress/Dockerfile npu/stress
         docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:npu-stress-latest-amd64
       shell: bash
-
-    - name: Build summary amd64 stress
-      if: always()
-      run: |
-        echo "Built amd64 image: npu-stress-latest-amd64"
-        echo "Platform: linux/amd64"
-        echo "Context: npu/stress"
 
   # Stage 2: Build and push arm64 images, then create multi-arch for each type
   build-arm64-training:
@@ -148,14 +127,6 @@ jobs:
         docker manifest push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:npu-training-latest
       shell: bash
 
-    - name: Build summary training
-      if: always()
-      run: |
-        echo "Built arm64 image: npu-training-latest-arm64"
-        echo "Platform: linux/arm64"
-        echo "Context: npu/training"
-        echo "Created multi-arch image: npu-training-latest"
-
   build-arm64-inference:
     runs-on: ubuntu-latest
     needs: build-arm64-training
@@ -185,14 +156,6 @@ jobs:
         docker manifest push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:npu-inference-latest
       shell: bash
 
-    - name: Build summary inference
-      if: always()
-      run: |
-        echo "Built arm64 image: npu-inference-latest-arm64"
-        echo "Platform: linux/arm64"
-        echo "Context: npu/inference"
-        echo "Created multi-arch image: npu-inference-latest"
-
   build-arm64-stress:
     runs-on: ubuntu-latest
     needs: build-arm64-inference
@@ -220,12 +183,4 @@ jobs:
           ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:npu-stress-latest-amd64 \
           ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:npu-stress-latest-arm64
         docker manifest push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:npu-stress-latest
-      shell: bash
-
-    - name: Create multi-arch stress image
-      if: always()
-      run: |
-        echo "Built arm64 image: npu-stress-latest-arm64"
-        echo "Platform: linux/arm64"
-        echo "Context: npu/stress"
-        echo "Created multi-arch image: npu-stress-latest" 
+      shell: bash 
