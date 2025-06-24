@@ -1,22 +1,26 @@
-apiVersion: batch/v1
-kind: Job
+apiVersion: apps/v1
+kind: Deployment
 metadata:
-  name: npu-stress-test
+  name: gpu-training-deploy
   namespace: default
   labels:
-    app: npu-benchmark
-    type: stress
+    app: gpu-benchmark
+    type: training
 spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gpu-benchmark
+      type: training
   template:
     metadata:
       labels:
-        app: npu-benchmark
-        type: stress
+        app: gpu-benchmark
+        type: training
     spec:
-      restartPolicy: Never
       containers:
-      - name: npu-stress
-        image: shaowenchen/xpu-benchmark:npu-stress-latest
+      - name: gpu-training
+        image: shaowenchen/xpu-benchmark:gpu-training-latest
         imagePullPolicy: Always
         env:
         - name: NVIDIA_VISIBLE_DEVICES
@@ -39,24 +43,26 @@ spec:
       volumes:
       - name: logs-volume
         persistentVolumeClaim:
-          claimName: npu-logs-pvc
+          claimName: gpu-logs-pvc
       - name: results-volume
         persistentVolumeClaim:
-          claimName: npu-results-pvc
+          claimName: gpu-results-pvc
       - name: config-volume
         configMap:
-          name: npu-stress-config
+          name: gpu-training-config
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: npu-stress-config
+  name: gpu-training-config
   namespace: default
 data:
   config.yaml: |
-    # NPU Stress Configuration
-    test_type: memory_bandwidth
-    duration: 300
-    iterations: 1000
-    device: npu
+    # GPU Training Configuration
+    model: resnet50
+    framework: pytorch
+    batch_size: 32
+    epochs: 10
+    learning_rate: 0.001
+    device: gpu
     log_level: INFO 

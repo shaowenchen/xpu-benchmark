@@ -1,22 +1,26 @@
-apiVersion: batch/v1
-kind: Job
+apiVersion: apps/v1
+kind: Deployment
 metadata:
-  name: gpu-inference-test
+  name: npu-training-deploy
   namespace: default
   labels:
-    app: gpu-benchmark
-    type: inference
+    app: npu-benchmark
+    type: training
 spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: npu-benchmark
+      type: training
   template:
     metadata:
       labels:
-        app: gpu-benchmark
-        type: inference
+        app: npu-benchmark
+        type: training
     spec:
-      restartPolicy: Never
       containers:
-      - name: gpu-inference
-        image: shaowenchen/xpu-benchmark:gpu-inference-latest
+      - name: npu-training
+        image: shaowenchen/xpu-benchmark:npu-training-latest
         imagePullPolicy: Always
         env:
         - name: NVIDIA_VISIBLE_DEVICES
@@ -39,25 +43,26 @@ spec:
       volumes:
       - name: logs-volume
         persistentVolumeClaim:
-          claimName: gpu-logs-pvc
+          claimName: npu-logs-pvc
       - name: results-volume
         persistentVolumeClaim:
-          claimName: gpu-results-pvc
+          claimName: npu-results-pvc
       - name: config-volume
         configMap:
-          name: gpu-inference-config
+          name: npu-training-config
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: gpu-inference-config
+  name: npu-training-config
   namespace: default
 data:
   config.yaml: |
-    # GPU Inference Configuration
-    model: bert
-    framework: tensorflow
-    batch_size: 16
-    iterations: 100
-    device: gpu
+    # NPU Training Configuration
+    model: resnet50
+    framework: mindspore
+    batch_size: 32
+    epochs: 10
+    learning_rate: 0.001
+    device: npu
     log_level: INFO 

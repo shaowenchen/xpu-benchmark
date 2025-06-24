@@ -1,23 +1,32 @@
-apiVersion: batch/v1
-kind: Job
+apiVersion: apps/v1
+kind: Deployment
 metadata:
-  name: npu-inference-test
+  name: npu-inference-deploy
   namespace: default
   labels:
     app: npu-benchmark
     type: inference
 spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: npu-benchmark
+      type: inference
   template:
     metadata:
       labels:
         app: npu-benchmark
         type: inference
     spec:
-      restartPolicy: Never
       containers:
       - name: npu-inference
         image: shaowenchen/xpu-benchmark:npu-inference-latest
         imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+          name: http
+        - containerPort: 8081
+          name: grpc
         env:
         - name: NVIDIA_VISIBLE_DEVICES
           value: "all"
@@ -46,6 +55,29 @@ spec:
       - name: config-volume
         configMap:
           name: npu-inference-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: npu-inference-service
+  namespace: default
+  labels:
+    app: npu-benchmark
+    type: inference
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8080
+    targetPort: 8080
+    protocol: TCP
+    name: http
+  - port: 8081
+    targetPort: 8081
+    protocol: TCP
+    name: grpc
+  selector:
+    app: npu-benchmark
+    type: inference
 ---
 apiVersion: v1
 kind: ConfigMap

@@ -1,0 +1,95 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gpu-inference-deploy
+  namespace: default
+  labels:
+    app: gpu-benchmark
+    type: inference
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gpu-benchmark
+      type: inference
+  template:
+    metadata:
+      labels:
+        app: gpu-benchmark
+        type: inference
+    spec:
+      containers:
+      - name: gpu-inference
+        image: shaowenchen/xpu-benchmark:gpu-inference-latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+          name: http
+        - containerPort: 8081
+          name: grpc
+        env:
+        - name: NVIDIA_VISIBLE_DEVICES
+          value: "all"
+        - name: NVIDIA_DRIVER_CAPABILITIES
+          value: "compute,utility"
+        resources:
+          limits:
+            nvidia.com/gpu: 1
+          requests:
+            nvidia.com/gpu: 1
+        volumeMounts:
+        - name: logs-volume
+          mountPath: /app/logs
+        - name: results-volume
+          mountPath: /app/results
+        - name: config-volume
+          mountPath: /app/config.yaml
+          subPath: config.yaml
+      volumes:
+      - name: logs-volume
+        persistentVolumeClaim:
+          claimName: gpu-logs-pvc
+      - name: results-volume
+        persistentVolumeClaim:
+          claimName: gpu-results-pvc
+      - name: config-volume
+        configMap:
+          name: gpu-inference-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gpu-inference-service
+  namespace: default
+  labels:
+    app: gpu-benchmark
+    type: inference
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8080
+    targetPort: 8080
+    protocol: TCP
+    name: http
+  - port: 8081
+    targetPort: 8081
+    protocol: TCP
+    name: grpc
+  selector:
+    app: gpu-benchmark
+    type: inference
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gpu-inference-config
+  namespace: default
+data:
+  config.yaml: |
+    # GPU Inference Configuration
+    model: bert
+    framework: tensorflow
+    batch_size: 16
+    iterations: 100
+    device: gpu
+    log_level: INFO 
