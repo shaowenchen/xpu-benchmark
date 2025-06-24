@@ -11,8 +11,6 @@ ENV PYTHONDONTWRITEBYTECODE=1
 RUN apt-get update && apt-get install -y \
     python3 \
     python3-pip \
-    python3-dev \
-    build-essential \
     cmake \
     git \
     wget \
