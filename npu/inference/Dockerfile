@@ -12,12 +12,9 @@ RUN apt-get update && apt-get install -y \
     python3 \
     python3-pip \
     python3-dev \
-    build-essential \
-    cmake \
     git \
     wget \
     curl \
-    htop \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies with specific versions for better compatibility
@@ -29,16 +26,6 @@ WORKDIR /app
 # Copy requirements and install Python dependencies
 COPY requirements.txt .
 RUN pip3 install --no-cache-dir -r requirements.txt
-
-# Install additional useful packages for NPU inference
-RUN pip3 install --no-cache-dir \
-    opencv-python \
-    pillow \
-    requests \
-    flask \
-    fastapi \
-    uvicorn \
-    onnxruntime
 
 # Copy benchmark script and config
 COPY bert_mindspore.py .
