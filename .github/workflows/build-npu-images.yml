@@ -148,8 +148,8 @@ jobs:
         echo "Platform: linux/amd64"
         echo "Context: npu/stress"
 
-  # Stage 2: Build and push arm64 images
-  build-arm64:
+  # Stage 2: Build and push arm64 images, then create multi-arch for each type
+  build-arm64-training:
     runs-on: ubuntu-latest
     needs: build-stress-amd64
     if: github.event.inputs.image_type == 'all' || github.event.inputs.image_type == 'training' || github.event.inputs.image_type == ''
@@ -178,16 +178,26 @@ jobs:
         docker build --platform linux/arm64 -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:npu-training-latest-arm64 -f npu/training/Dockerfile npu/training
       shell: bash
 
-    - name: Build summary arm64
+    - name: Create multi-arch training image
+      if: github.event_name != 'pull_request'
+      run: |
+        docker manifest create ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:npu-training-latest \
+          ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:npu-training-latest-amd64 \
+          ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:npu-training-latest-arm64
+        docker manifest push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:npu-training-latest
+      shell: bash
+
+    - name: Build summary training
       if: always()
       run: |
         echo "Built arm64 image: npu-training-latest-arm64"
         echo "Platform: linux/arm64"
         echo "Context: npu/training"
+        echo "Created multi-arch image: npu-training-latest"
 
-  build-inference-arm64:
+  build-arm64-inference:
     runs-on: ubuntu-latest
-    needs: build-arm64
+    needs: build-arm64-training
     if: github.event.inputs.image_type == 'all' || github.event.inputs.image_type == 'inference' || github.event.inputs.image_type == ''
     steps:
     - name: Checkout repository
@@ -214,16 +224,26 @@ jobs:
         docker build --platform linux/arm64 -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:npu-inference-latest-arm64 -f npu/inference/Dockerfile npu/inference
       shell: bash
 
-    - name: Build summary arm64 inference
+    - name: Create multi-arch inference image
+      if: github.event_name != 'pull_request'
+      run: |
+        docker manifest create ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:npu-inference-latest \
+          ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:npu-inference-latest-amd64 \
+          ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:npu-inference-latest-arm64
+        docker manifest push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:npu-inference-latest
+      shell: bash
+
+    - name: Build summary inference
       if: always()
       run: |
         echo "Built arm64 image: npu-inference-latest-arm64"
         echo "Platform: linux/arm64"
         echo "Context: npu/inference"
+        echo "Created multi-arch image: npu-inference-latest"
 
-  build-stress-arm64:
+  build-arm64-stress:
     runs-on: ubuntu-latest
-    needs: build-inference-arm64
+    needs: build-arm64-inference
     if: github.event.inputs.image_type == 'all' || github.event.inputs.image_type == 'stress' || github.event.inputs.image_type == ''
     steps:
     - name: Checkout repository
@@ -250,90 +270,6 @@ jobs:
         docker build --platform linux/arm64 -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:npu-stress-latest-arm64 -f npu/stress/Dockerfile npu/stress
       shell: bash
 
-    - name: Build summary arm64 stress
-      if: always()
-      run: |
-        echo "Built arm64 image: npu-stress-latest-arm64"
-        echo "Platform: linux/arm64"
-        echo "Context: npu/stress"
-
-  # Stage 3: Create and push multi-arch images
-  create-multiarch-training:
-    runs-on: ubuntu-latest
-    needs: build-stress-arm64
-    if: github.event.inputs.image_type == 'all' || github.event.inputs.image_type == 'training' || github.event.inputs.image_type == ''
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-
-    - name: Log in to Docker Hub
-      if: github.event_name != 'pull_request'
-      uses: docker/login-action@v3
-      with:
-        registry: ${{ env.REGISTRY }}
-        username: ${{ secrets.DOCKERHUB_USERNAME }}
-        password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-    - name: Create multi-arch training image
-      if: github.event_name != 'pull_request'
-      run: |
-        docker manifest create ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:npu-training-latest \
-          ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:npu-training-latest-amd64 \
-          ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:npu-training-latest-arm64
-        docker manifest push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:npu-training-latest
-
-    - name: Multi-arch summary training
-      if: always()
-      run: |
-        echo "Created multi-arch image: npu-training-latest"
-        echo "Combined: npu-training-latest-amd64 + npu-training-latest-arm64"
-
-  create-multiarch-inference:
-    runs-on: ubuntu-latest
-    needs: create-multiarch-training
-    if: github.event.inputs.image_type == 'all' || github.event.inputs.image_type == 'inference' || github.event.inputs.image_type == ''
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-
-    - name: Log in to Docker Hub
-      if: github.event_name != 'pull_request'
-      uses: docker/login-action@v3
-      with:
-        registry: ${{ env.REGISTRY }}
-        username: ${{ secrets.DOCKERHUB_USERNAME }}
-        password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-    - name: Create multi-arch inference image
-      if: github.event_name != 'pull_request'
-      run: |
-        docker manifest create ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:npu-inference-latest \
-          ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:npu-inference-latest-amd64 \
-          ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:npu-inference-latest-arm64
-        docker manifest push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:npu-inference-latest
-
-    - name: Multi-arch summary inference
-      if: always()
-      run: |
-        echo "Created multi-arch image: npu-inference-latest"
-        echo "Combined: npu-inference-latest-amd64 + npu-inference-latest-arm64"
-
-  create-multiarch-stress:
-    runs-on: ubuntu-latest
-    needs: create-multiarch-inference
-    if: github.event.inputs.image_type == 'all' || github.event.inputs.image_type == 'stress' || github.event.inputs.image_type == ''
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-
-    - name: Log in to Docker Hub
-      if: github.event_name != 'pull_request'
-      uses: docker/login-action@v3
-      with:
-        registry: ${{ env.REGISTRY }}
-        username: ${{ secrets.DOCKERHUB_USERNAME }}
-        password: ${{ secrets.DOCKERHUB_TOKEN }}
-
     - name: Create multi-arch stress image
       if: github.event_name != 'pull_request'
       run: |
@@ -341,9 +277,12 @@ jobs:
           ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:npu-stress-latest-amd64 \
           ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:npu-stress-latest-arm64
         docker manifest push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:npu-stress-latest
+      shell: bash
 
-    - name: Multi-arch summary stress
+    - name: Build summary stress
       if: always()
       run: |
-        echo "Created multi-arch image: npu-stress-latest"
-        echo "Combined: npu-stress-latest-amd64 + npu-stress-latest-arm64" 
+        echo "Built arm64 image: npu-stress-latest-arm64"
+        echo "Platform: linux/arm64"
+        echo "Context: npu/stress"
+        echo "Created multi-arch image: npu-stress-latest" 
