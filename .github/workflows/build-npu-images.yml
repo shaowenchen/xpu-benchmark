@@ -222,7 +222,7 @@ jobs:
         docker manifest push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:npu-stress-latest
       shell: bash
 
-    - name: Build summary stress
+    - name: Create multi-arch stress image
       if: always()
       run: |
         echo "Built arm64 image: npu-stress-latest-arm64"
