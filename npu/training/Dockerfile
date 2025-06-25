@@ -1,38 +1,19 @@
 # NPU Training Dockerfile
-# Use Ubuntu base image
-FROM ubuntu:22.04
+# Use Python 3.11 slim base image
+FROM python:3.11-slim
 
 # Set environment variables
-ENV DEBIAN_FRONTEND=noninteractive
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
-
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    python3 \
-    python3-pip \
-    cmake \
-    git \
-    wget \
-    curl \
-    htop \
-    && rm -rf /var/lib/apt/lists/*
-
-# Install Python dependencies with specific versions for better compatibility
-RUN pip3 install --no-cache-dir --upgrade pip setuptools wheel
-
-# Install PyTorch (CPU version for compatibility)
-RUN pip3 install --no-cache-dir torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
-
 # Set working directory
 WORKDIR /app
 
 # Copy requirements and install Python dependencies
 COPY requirements.txt .
-RUN pip3 install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Install additional useful packages for NPU training
-RUN pip3 install --no-cache-dir \
+RUN pip install --no-cache-dir \
     tensorboard \
     matplotlib \
     seaborn \
@@ -50,7 +31,7 @@ RUN mkdir -p /app/reports
 
 # Add health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD python3 -c "import torch; print('PyTorch version:', torch.__version__)" || exit 1
+    CMD python -c "import torch; print('PyTorch version:', torch.__version__)" || exit 1
 
 # Set default command
-CMD ["python3", "resnet50_mindspore.py", "--config", "config.yaml", "--output", "/app/reports"] 
+CMD ["python", "resnet50_mindspore.py", "--config", "config.yaml", "--output", "/app/reports"] 
