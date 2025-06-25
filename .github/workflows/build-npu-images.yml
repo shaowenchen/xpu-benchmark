@@ -39,6 +39,8 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event.inputs.image_type == 'all' || github.event.inputs.image_type == 'training' || github.event.inputs.image_type == ''
     steps:
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
       - name: Checkout repository
         uses: actions/checkout@v4
       - name: Log in to Docker Hub
@@ -65,6 +67,8 @@ jobs:
     needs: build-arm64-training
     if: github.event.inputs.image_type == 'all' || github.event.inputs.image_type == 'inference' || github.event.inputs.image_type == ''
     steps:
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
       - name: Checkout repository
         uses: actions/checkout@v4
       - name: Log in to Docker Hub
@@ -91,6 +95,8 @@ jobs:
     needs: build-arm64-inference
     if: github.event.inputs.image_type == 'all' || github.event.inputs.image_type == 'stress' || github.event.inputs.image_type == ''
     steps:
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
       - name: Checkout repository
         uses: actions/checkout@v4
       - name: Log in to Docker Hub
@@ -118,6 +124,8 @@ jobs:
     needs: build-arm64-stress
     if: github.event.inputs.image_type == 'all' || github.event.inputs.image_type == 'training' || github.event.inputs.image_type == ''
     steps:
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
       - name: Checkout repository
         uses: actions/checkout@v4
       - name: Log in to Docker Hub
@@ -137,6 +145,8 @@ jobs:
     needs: build-amd64
     if: github.event.inputs.image_type == 'all' || github.event.inputs.image_type == 'inference' || github.event.inputs.image_type == ''
     steps:
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
       - name: Checkout repository
         uses: actions/checkout@v4
       - name: Log in to Docker Hub
@@ -156,6 +166,8 @@ jobs:
     needs: build-inference-amd64
     if: github.event.inputs.image_type == 'all' || github.event.inputs.image_type == 'stress' || github.event.inputs.image_type == ''
     steps:
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
       - name: Checkout repository
         uses: actions/checkout@v4
       - name: Log in to Docker Hub
