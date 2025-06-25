@@ -1,6 +1,6 @@
 # NPU Training Dockerfile
-# Use multi-arch Ubuntu base image
-FROM --platform=$TARGETPLATFORM ubuntu:22.04
+# Use Ubuntu base image
+FROM ubuntu:22.04
 
 # Set environment variables
 ENV DEBIAN_FRONTEND=noninteractive
