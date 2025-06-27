@@ -2,23 +2,10 @@ name: Build NPU Docker Images
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ master ]
     paths:
       - 'npu/**'
-      - 'config/npu/**'
       - '.github/workflows/build-npu-images.yml'
-  workflow_dispatch:
-    inputs:
-      image_type:
-        description: 'Image type to build'
-        required: false
-        default: 'all'
-        type: choice
-        options:
-          - all
-          - training
-          - inference
-          - stress
 
 env:
   REGISTRY: docker.io
