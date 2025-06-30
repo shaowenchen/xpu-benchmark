@@ -18,18 +18,18 @@ jobs:
       matrix:
         image_type: [training, inference, stress]
         include:
-          - image_type: training
-            dockerfile: gpu/training/Dockerfile
-            context: gpu/training
-            tag: gpu-training
+          # - image_type: training
+          #   dockerfile: gpu/training/Dockerfile
+          #   context: gpu/training
+          #   tag: gpu-training
           - image_type: inference
             dockerfile: gpu/inference/Dockerfile
             context: gpu/inference
             tag: gpu-inference
-          - image_type: stress
-            dockerfile: gpu/stress/Dockerfile
-            context: gpu/stress
-            tag: gpu-stress
+          # - image_type: stress
+          #   dockerfile: gpu/stress/Dockerfile
+          #   context: gpu/stress
+          #   tag: gpu-stress
 
     steps:
     - name: Checkout repository
@@ -62,5 +62,6 @@ jobs:
         labels: ${{ steps.meta.outputs.labels }}
         cache-from: type=gha
         cache-to: type=gha,mode=max
-        platforms: linux/amd64,linux/arm64
+        # platforms: linux/amd64,linux/arm64
+        platforms: linux/amd64
         push: true

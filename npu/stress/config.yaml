@@ -4,13 +4,14 @@ hardware:
   driver_version: "auto"
   cann_version: "auto"
 
-stress:
-  memory_bandwidth:
-    enabled: true
-    test_duration: 300  # seconds
-    memory_size: "8GB"
-    bandwidth_test: true
-    latency_test: true
+benchmarks:
+  stress:
+    memory_bandwidth:
+      enabled: true
+      test_duration: 300  # seconds
+      memory_size: "8GB"
+      bandwidth_test: true
+      latency_test: true
 
 metrics:
   collection_interval: 1  # seconds

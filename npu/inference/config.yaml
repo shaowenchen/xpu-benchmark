@@ -4,13 +4,14 @@ hardware:
   driver_version: "auto"
   cann_version: "auto"
 
-inference:
-  bert_mindspore:
-    enabled: true
-    batch_size: 1
-    sequence_length: 512
-    model_path: "/models/bert-base-uncased"
-    iterations: 1000
+benchmarks:
+  inference:
+    bert_mindspore:
+      enabled: true
+      batch_size: 1
+      sequence_length: 512
+      model_path: "/models/bert-base-uncased"
+      iterations: 1000
 
 metrics:
   collection_interval: 1  # seconds

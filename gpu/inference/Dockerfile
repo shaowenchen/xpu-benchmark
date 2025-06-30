@@ -1,4 +1,4 @@
-# GPU Inference Dockerfile
+# GPU Inference Dockerfile with vLLM
 # Use NVIDIA CUDA runtime image
 FROM nvidia/cuda:12.3.2-runtime-ubuntu22.04
 
@@ -28,24 +28,15 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip3 install --no-cache-dir -r requirements.txt
 
-# Install additional useful packages for inference
-RUN pip3 install --no-cache-dir \
-    pillow \
-    requests \
-    flask \
-    fastapi \
-    uvicorn
-
-# Copy benchmark script and config
-COPY bert_tf_serving.py .
-COPY config.yaml ./config.yaml
+# Copy vLLM server script
+COPY vllm_server.py .
 
 # Create output directory
 RUN mkdir -p /app/reports
 
 # Add health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD python3 -c "import tensorflow as tf; print('GPU available:', len(tf.config.list_physical_devices('GPU')))" || exit 1
+    CMD python3 -c "import torch; print('CUDA available:', torch.cuda.is_available())" || exit 1
 
-# Set default command
-CMD ["python3", "bert_tf_serving.py", "--config", "config.yaml", "--output", "/app/reports"] 
+# Set default command to start vLLM server
+CMD ["python3", "vllm_server.py", "--model-path", "/model/Qwen2.5-7B-Instruct", "--cuda-visible-devices", "1", "--port", "8000"] 

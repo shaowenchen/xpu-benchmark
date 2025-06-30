@@ -4,15 +4,16 @@ hardware:
   driver_version: "auto"
   cann_version: "auto"
 
-training:
-  resnet50_mindspore:
-    enabled: true
-    batch_size: 32
-    epochs: 10
-    learning_rate: 0.001
-    optimizer: "adam"
-    dataset: "imagenet"
-    mixed_precision: true
+benchmarks:
+  training:
+    resnet50_mindspore:
+      enabled: true
+      batch_size: 32
+      epochs: 10
+      learning_rate: 0.001
+      optimizer: "adam"
+      dataset: "imagenet"
+      mixed_precision: true
 
 metrics:
   collection_interval: 1  # seconds
