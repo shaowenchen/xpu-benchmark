@@ -57,26 +57,9 @@ if ! check_container_tool $CONTAINER_TOOL; then
 fi
 
 echo "=== Step 2: Build Docker image ==="
-# Add build parameters and retry mechanism
-MAX_RETRIES=3
-for attempt in $(seq 1 $MAX_RETRIES); do
-  echo "Build attempt $attempt/$MAX_RETRIES"
-  
-  if $CONTAINER_TOOL build \
-    --build-arg BUILDKIT_INLINE_CACHE=1 \
-    -t $IMAGE_NAME .; then
-    echo "Build successful!"
-    break
-  else
-    echo "Build failed, attempt $attempt/$MAX_RETRIES"
-    if [ $attempt -eq $MAX_RETRIES ]; then
-      echo "All build attempts failed"
-      exit 1
-    fi
-    echo "Waiting 10 seconds before retry..."
-    sleep 10
-  fi
-done
+$CONTAINER_TOOL build \
+  --build-arg BUILDKIT_INLINE_CACHE=1 \
+  -t $IMAGE_NAME .
 
 echo "=== Step 3: Start container (background) ==="
 $CONTAINER_TOOL rm -f $CONTAINER_NAME >/dev/null 2>&1 || true
