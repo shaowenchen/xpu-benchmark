@@ -10,18 +10,6 @@ CONTAINER_NAME="xpu-benchmark-test"
 HOST_PORT=8000
 CONTAINER_PORT=8000
 
-# 自动检测可用的容器工具
-if command -v nerdctl >/dev/null 2>&1; then
-  echo "使用 nerdctl 作为容器工具"
-  CONTAINER_TOOL=nerdctl
-elif command -v docker >/dev/null 2>&1; then
-  echo "使用 docker 作为容器工具"
-  CONTAINER_TOOL=docker
-else
-  echo "[ERROR] 未找到可用的容器工具（docker 或 nerdctl）"
-  exit 1
-fi
-
 echo "=== Step 1: 构建 Docker 镜像 ==="
 # 添加构建参数和重试机制
 MAX_RETRIES=3
