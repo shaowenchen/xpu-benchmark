@@ -10,17 +10,39 @@ CONTAINER_NAME="xpu-benchmark-test"
 HOST_PORT=8000
 CONTAINER_PORT=8000
 
-# 检查 nerdctl 是否可用
-if ! command -v nerdctl >/dev/null 2>&1; then
-  echo "[ERROR] nerdctl 未安装，请先安装 nerdctl。"
+# 自动检测可用的容器工具
+if command -v nerdctl >/dev/null 2>&1; then
+  echo "使用 nerdctl 作为容器工具"
+  CONTAINER_TOOL=nerdctl
+elif command -v docker >/dev/null 2>&1; then
+  echo "使用 docker 作为容器工具"
+  CONTAINER_TOOL=docker
+else
+  echo "[ERROR] 未找到可用的容器工具（docker 或 nerdctl）"
   exit 1
 fi
 
-# 选择 nerdctl 作为容器工具
-CONTAINER_TOOL=nerdctl
-
-echo "=== Step 1: 构建 Docker 镜像（nerdctl） ==="
-$CONTAINER_TOOL build -t $IMAGE_NAME .
+echo "=== Step 1: 构建 Docker 镜像 ==="
+# 添加构建参数和重试机制
+MAX_RETRIES=3
+for attempt in $(seq 1 $MAX_RETRIES); do
+  echo "构建尝试 $attempt/$MAX_RETRIES"
+  
+  if $CONTAINER_TOOL build \
+    --build-arg BUILDKIT_INLINE_CACHE=1 \
+    -t $IMAGE_NAME .; then
+    echo "构建成功！"
+    break
+  else
+    echo "构建失败，尝试 $attempt/$MAX_RETRIES"
+    if [ $attempt -eq $MAX_RETRIES ]; then
+      echo "所有构建尝试都失败了"
+      exit 1
+    fi
+    echo "等待 10 秒后重试..."
+    sleep 10
+  fi
+done
 
 echo "=== Step 2: 启动容器（后台运行）==="
 $CONTAINER_TOOL rm -f $CONTAINER_NAME >/dev/null 2>&1 || true
