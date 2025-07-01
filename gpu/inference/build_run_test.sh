@@ -127,7 +127,6 @@ else
             --build-arg BUILDKIT_PROGRESS=plain \
             --cache-from $IMAGE_NAME \
             --tag $IMAGE_NAME \
-            --target final \
             .
     else
         echo "No existing image found, building from scratch..."
@@ -138,7 +137,6 @@ else
             --build-arg DOCKER_BUILDKIT=1 \
             --build-arg BUILDKIT_PROGRESS=plain \
             --tag $IMAGE_NAME \
-            --target final \
             .
     fi
 fi
