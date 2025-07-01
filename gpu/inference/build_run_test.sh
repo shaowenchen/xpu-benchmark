@@ -63,7 +63,7 @@ $CONTAINER_TOOL build \
 
 echo "=== Step 3: Start container (background) ==="
 $CONTAINER_TOOL rm -f $CONTAINER_NAME >/dev/null 2>&1 || true
-$CONTAINER_TOOL run --rm -d \
+$CONTAINER_TOOL run -d \
   --gpus all \
   --name $CONTAINER_NAME \
   -p $HOST_PORT:$CONTAINER_PORT \
