@@ -61,7 +61,8 @@ $CONTAINER_TOOL build \
   --build-arg BUILDKIT_INLINE_CACHE=1 \
   --build-arg DOCKER_BUILDKIT=1 \
   --build-arg BUILDKIT_PROGRESS=plain \
-  -t $IMAGE_NAME .
+  --cache-from $IMAGE_NAME \
+  --tag $IMAGE_NAME .
 
 echo "=== Step 3: Start container (background) ==="
 $CONTAINER_TOOL rm -f $CONTAINER_NAME >/dev/null 2>&1 || true
