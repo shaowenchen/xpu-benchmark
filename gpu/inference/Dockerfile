@@ -18,9 +18,6 @@ RUN apt-get update && \
         && rm -rf /var/lib/apt/lists/* \
         && apt-get clean
 
-# Configure pip (this layer rarely changes)
-RUN pip3 config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple
-
 # Upgrade pip tools (this layer rarely changes)
 RUN pip3 install --no-cache-dir --upgrade pip setuptools wheel
 
