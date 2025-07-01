@@ -120,20 +120,26 @@ else
         echo "Found existing image: $IMAGE_NAME"
         echo "Using existing image as cache..."
         
-        # Build with cache from existing image
+        # Build with cache from existing image and additional optimizations
         $CONTAINER_TOOL build \
             --build-arg BUILDKIT_INLINE_CACHE=1 \
             --build-arg DOCKER_BUILDKIT=1 \
+            --build-arg BUILDKIT_PROGRESS=plain \
             --cache-from $IMAGE_NAME \
-            --tag $IMAGE_NAME .
+            --tag $IMAGE_NAME \
+            --target final \
+            .
     else
         echo "No existing image found, building from scratch..."
         
-        # First time build
+        # First time build with optimizations
         $CONTAINER_TOOL build \
             --build-arg BUILDKIT_INLINE_CACHE=1 \
             --build-arg DOCKER_BUILDKIT=1 \
-            --tag $IMAGE_NAME .
+            --build-arg BUILDKIT_PROGRESS=plain \
+            --tag $IMAGE_NAME \
+            --target final \
+            .
     fi
 fi
 
