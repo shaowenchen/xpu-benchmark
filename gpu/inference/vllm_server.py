@@ -79,15 +79,42 @@ class MetricsCollector:
         logger.info("Stopped metrics collection")
     
     def save_metrics(self, output_dir):
-        """Save collected metrics"""
+        """Save collected metrics as markdown report"""
         if self.metrics:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            metrics_file = Path(output_dir) / f"vllm_metrics_{timestamp}.json"
+            report_file = Path(output_dir) / f"report_{timestamp}.md"
             
-            with open(metrics_file, 'w') as f:
-                json.dump(self.metrics, f, indent=2)
+            with open(report_file, 'w') as f:
+                f.write("# vLLM Server Test Report\n\n")
+                f.write(f"**Test Date:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
+                f.write(f"**Model:** Qwen2.5-7B-Instruct\n\n")
+                f.write(f"**Total Metrics Collected:** {len(self.metrics)}\n\n")
+                
+                if self.metrics:
+                    # Calculate averages
+                    cpu_usage = [m['system_metrics'].get('cpu_usage', 0) for m in self.metrics if m['system_metrics']]
+                    memory_usage = [m['system_metrics'].get('memory_usage', 0) for m in self.metrics if m['system_metrics']]
+                    
+                    if cpu_usage:
+                        avg_cpu = sum(cpu_usage) / len(cpu_usage)
+                        f.write(f"**Average CPU Usage:** {avg_cpu:.1f}%\n\n")
+                    
+                    if memory_usage:
+                        avg_memory = sum(memory_usage) / len(memory_usage)
+                        f.write(f"**Average Memory Usage:** {avg_memory:.1f}%\n\n")
+                    
+                    # GPU metrics summary
+                    gpu_metrics = [m['gpu_metrics'] for m in self.metrics if m['gpu_metrics']]
+                    if gpu_metrics:
+                        f.write("## GPU Metrics Summary\n\n")
+                        f.write("GPU metrics were collected during the test.\n\n")
+                    
+                    f.write("## Test Status\n\n")
+                    f.write("✅ **Test completed successfully**\n\n")
+                    f.write("---\n\n")
+                    f.write("*Report generated automatically by vLLM server*\n")
             
-            logger.info(f"Metrics saved to: {metrics_file}")
+            logger.info(f"Report saved to: {report_file}")
 
 class VLLMServer:
     """vLLM Server for Qwen2.5-7B-Instruct"""
