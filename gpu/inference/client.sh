@@ -384,23 +384,7 @@ case "${1:-all}" in
         main
         ;;
     *)
-        echo "Usage: $0 [command] [args...]"
-        echo ""
-        echo "Commands:"
-        echo "  health                    - Test server health"
-        echo "  chat [prompt] [tokens]    - Test chat completion"
-        echo "  completion [prompt] [tokens] - Test completion API"
-        echo "  models                    - Test models endpoint"
-        echo "  benchmark [count] [prompt] - Run benchmark test"
-        echo "  scenarios                 - Run various test scenarios"
-        echo "  errors                    - Test error handling"
-        echo "  all                       - Run all tests (default)"
-        echo ""
-        echo "Examples:"
-        echo "  $0 health"
-        echo "  $0 chat \"Hello!\" 50"
-        echo "  $0 benchmark 10 \"Write a poem\""
-        echo "  $0 all"
+        echo "Usage: $0 [health|chat|completion|models|benchmark|scenarios|errors|all]"
         exit 1
         ;;
 esac

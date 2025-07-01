@@ -1,211 +1,129 @@
-# vLLM Testing Guide
+# vLLM GPU Inference Testing
 
-This directory contains testing tools for the vLLM server with Qwen2.5-7B-Instruct model.
+This directory contains simplified testing scripts for the vLLM server running on GPU.
 
-## Files
+## Requirements
 
-- `client.sh` - Main test client script using curl (no external dependencies)
-- `vllm_server.py` - vLLM server wrapper script
-- `run.sh` - Server startup script
+- `nerdctl` - Container runtime tool
+- `curl` - HTTP client (usually pre-installed)
+- GPU with CUDA support
 
 ## Quick Start
 
-### 1. Start the vLLM Server
+### 1. Build and Test (Default)
 
 ```bash
-# Start the Docker container
-docker run --rm -it \
+# Build image and run all tests (default behavior)
+./build_run_test.sh
+```
+
+### 2. Build Only
+
+```bash
+# Build only, don't run tests
+./build_run_test.sh --build-only
+```
+
+### 3. Test Only
+
+```bash
+# Test only, skip build (assumes image exists)
+./build_run_test.sh --test-only
+```
+
+### 4. Service Mode
+
+```bash
+# Build, test, and keep service running
+./build_run_test.sh --serve
+```
+
+This mode will:
+- Build the image (if needed)
+- Run tests
+- Keep the container running
+- Show service status and useful commands
+- Wait for Ctrl+C to stop the service
+
+### 4. Manual Testing
+
+If you want to test manually:
+
+```bash
+# Build the image
+nerdctl build -t xpu-benchmark:gpu-inference .
+
+# Run the container
+nerdctl run -d \
+  --name xpu-benchmark-test \
   --gpus all \
   -p 8000:8000 \
-  -v $(pwd)/reports:/app/reports \
-  shaowenchen/xpu-benchmark:gpu-inference
+  xpu-benchmark:gpu-inference
+
+# Test the server
+./client.sh health
+./client.sh chat "Hello, how are you?" 50
+./client.sh completion "The future of AI is" 50
+./client.sh models
+
+# Stop the container
+nerdctl stop xpu-benchmark-test
+nerdctl rm xpu-benchmark-test
 ```
 
-### 2. Test the Server
+## Client Script Usage
 
-In a new terminal, run the test client:
-
-```bash
-# Make script executable
-chmod +x client.sh
-
-# Run all tests
-./client.sh
-```
-
-## Test Commands
-
-### Basic Tests
+The `client.sh` script supports various test commands:
 
 ```bash
 # Health check
 ./client.sh health
 
+# Chat completion
+./client.sh chat "Your prompt here" 100
+
+# Text completion
+./client.sh completion "Your prompt here" 50
+
 # List available models
 ./client.sh models
 
-# Simple chat completion
-./client.sh chat "Hello! How are you?" 50
+# Run benchmark test
+./client.sh benchmark 10 "Generate a story"
 
-# Completion API
-./client.sh completion "The future of AI is" 50
-```
-
-### Advanced Tests
-
-```bash
-# Run various test scenarios
+# Run all test scenarios
 ./client.sh scenarios
 
-# Performance benchmark
-./client.sh benchmark 10 "Write a story about"
-
-# Error handling tests
+# Test error handling
 ./client.sh errors
+
+# Run all tests
+./client.sh all
 ```
 
-### Custom Tests
+## Features
 
-```bash
-# Custom chat with specific prompt and token limit
-./client.sh chat "Explain quantum computing in simple terms" 200
-
-# Custom completion
-./client.sh completion "The best way to learn programming is" 100
-
-# Custom benchmark
-./client.sh benchmark 20 "Generate a creative story about"
-```
-
-## Test Scenarios
-
-The `scenarios` command tests various use cases:
-
-1. **Simple Greeting** - Basic conversation
-2. **Technical Question** - Complex topic explanation
-3. **Creative Writing** - Poetry generation
-4. **Code Generation** - Python function writing
-5. **Translation** - Language translation
-6. **Math Problem** - Mathematical problem solving
-7. **Completion API** - Text completion
-
-## Benchmark Testing
-
-The benchmark test measures:
-
-- **Total requests**: Number of requests sent
-- **Successful requests**: Number of successful responses
-- **Total time**: Time taken for all requests
-- **Average time per request**: Mean response time
-- **Throughput**: Requests per second
-
-Example output:
-```
-📊 Benchmark Results:
-Total requests: 5
-Successful requests: 5
-Total time: 12.34s
-Average time per request: 2.47s
-Throughput: 0.41 requests/second
-```
-
-## Error Handling
-
-The `errors` command tests:
-
-1. **Invalid Model Name** - Tests server response to unknown model
-2. **Missing Required Fields** - Tests validation of required parameters
-3. **Invalid JSON** - Tests malformed request handling
-
-## Manual curl Commands
-
-You can also test manually with curl:
-
-### Health Check
-```bash
-curl http://localhost:8000/health
-```
-
-### Chat Completion
-```bash
-curl http://localhost:8000/v1/chat/completions \
-  -H "Content-Type: application/json" \
-  -d '{
-    "model": "Qwen2.5-7B-Instruct",
-    "messages": [
-      {"role": "user", "content": "Hello! What can you do?"}
-    ],
-    "max_tokens": 100,
-    "temperature": 0.7
-  }'
-```
-
-### Completion API
-```bash
-curl http://localhost:8000/v1/completions \
-  -H "Content-Type: application/json" \
-  -d '{
-    "model": "Qwen2.5-7B-Instruct",
-    "prompt": "The future of artificial intelligence is",
-    "max_tokens": 50,
-    "temperature": 0.7
-  }'
-```
-
-### List Models
-```bash
-curl http://localhost:8000/v1/models
-```
+- **Simplified Dependencies**: Only requires `nerdctl` and `curl`
+- **No External Tools**: No need for `jq`, `bc`, or other external dependencies
+- **Flexible Options**: Control build and test steps separately
+- **Service Mode**: Keep service running for manual testing and inspection
+- **Comprehensive Testing**: Tests health, models, chat completion, and completion APIs
+- **Error Handling**: Tests various error scenarios
+- **Benchmarking**: Performance testing with multiple requests
+- **Automatic Reports**: Generates test reports in `../reports/` directory
 
 ## Troubleshooting
 
-### Common Issues
+1. **nerdctl not found**: Install nerdctl following the official documentation
+2. **GPU not available**: Ensure your system has GPU with CUDA support
+3. **Port 8000 in use**: Change the port in the scripts or stop other services using port 8000
+4. **Container fails to start**: Check the logs with `nerdctl logs xpu-benchmark-test`
 
-1. **Server not responding**
-   ```bash
-   # Check if server is running
-   curl http://localhost:8000/health
-   
-   # Check Docker container logs
-   docker logs <container_id>
-   ```
+## Test Reports
 
-2. **Permission denied**
-   ```bash
-   # Make script executable
-   chmod +x client.sh
-   ```
+Test reports are automatically generated in the `../reports/` directory with timestamps. Each report includes:
 
-3. **Script not working**
-   ```bash
-   # Check if curl is available
-   which curl
-   
-   # Run with verbose output
-   ./client.sh health
-   ```
-
-### Expected Responses
-
-- **Health Check**: Should return HTTP 200 with server status
-- **Chat Completion**: Should return HTTP 200 with generated text
-- **Models**: Should return HTTP 200 with available models list
-- **Invalid Requests**: Should return appropriate HTTP error codes (400, 404, etc.)
-
-## Performance Tips
-
-1. **Warm up the model**: Run a few requests before benchmarking
-2. **Monitor GPU usage**: Use `nvidia-smi` to monitor GPU utilization
-3. **Adjust batch size**: Modify `--max-num-seqs` in vLLM parameters
-4. **Memory optimization**: Adjust `--gpu-memory-utilization` based on your GPU
-
-## API Reference
-
-The vLLM server provides OpenAI-compatible endpoints:
-
-- `GET /health` - Server health check
-- `GET /v1/models` - List available models
-- `POST /v1/chat/completions` - Chat completion API
-- `POST /v1/completions` - Text completion API
-
-For detailed API documentation, see the [OpenAI API reference](https://platform.openai.com/docs/api-reference). 
+- Test results for all endpoints
+- Success/failure status
+- Response logs
+- Overall test summary 
