@@ -2,6 +2,41 @@
 
 set -e
 
+# Parse command line arguments
+SKIP_BUILD=false
+CLEAN_BUILD=false
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --skip-build)
+            SKIP_BUILD=true
+            shift
+            ;;
+        --clean-build)
+            CLEAN_BUILD=true
+            shift
+            ;;
+        --help|-h)
+            echo "Usage: $0 [OPTIONS]"
+            echo ""
+            echo "Options:"
+            echo "  --skip-build    Skip building image, use existing one"
+            echo "  --clean-build   Remove existing image and build from scratch"
+            echo "  --help, -h      Show this help message"
+            echo ""
+            echo "Examples:"
+            echo "  $0              # Normal build with cache"
+            echo "  $0 --skip-build # Skip build, use existing image"
+            echo "  $0 --clean-build # Clean build from scratch"
+            exit 0
+            ;;
+        *)
+            echo "Unknown option: $1"
+            echo "Use --help for usage information"
+            exit 1
+            ;;
+    esac
+done
+
 echo "=== Step 0: Update code repository ==="
 git pull
 
@@ -57,12 +92,50 @@ if ! check_container_tool $CONTAINER_TOOL; then
 fi
 
 echo "=== Step 2: Build Docker image ==="
-$CONTAINER_TOOL build \
-  --build-arg BUILDKIT_INLINE_CACHE=1 \
-  --build-arg DOCKER_BUILDKIT=1 \
-  --build-arg BUILDKIT_PROGRESS=plain \
-  --cache-from $IMAGE_NAME \
-  --tag $IMAGE_NAME .
+
+if [ "$SKIP_BUILD" = true ]; then
+    echo "Skipping build as requested..."
+    
+    # Check if image exists
+    if ! $CONTAINER_TOOL images | grep -q "$IMAGE_NAME"; then
+        echo "[ERROR] Image $IMAGE_NAME not found. Please build first or remove --skip-build flag."
+        exit 1
+    fi
+    
+    echo "Using existing image: $IMAGE_NAME"
+elif [ "$CLEAN_BUILD" = true ]; then
+    echo "Clean build requested, removing existing image..."
+    
+    # Remove existing image
+    $CONTAINER_TOOL rmi -f $IMAGE_NAME >/dev/null 2>&1 || true
+    
+    echo "Building from scratch..."
+    $CONTAINER_TOOL build \
+        --build-arg BUILDKIT_INLINE_CACHE=1 \
+        --build-arg DOCKER_BUILDKIT=1 \
+        --tag $IMAGE_NAME .
+else
+    # Check if image already exists
+    if $CONTAINER_TOOL images | grep -q "$IMAGE_NAME"; then
+        echo "Found existing image: $IMAGE_NAME"
+        echo "Using existing image as cache..."
+        
+        # Build with cache from existing image
+        $CONTAINER_TOOL build \
+            --build-arg BUILDKIT_INLINE_CACHE=1 \
+            --build-arg DOCKER_BUILDKIT=1 \
+            --cache-from $IMAGE_NAME \
+            --tag $IMAGE_NAME .
+    else
+        echo "No existing image found, building from scratch..."
+        
+        # First time build
+        $CONTAINER_TOOL build \
+            --build-arg BUILDKIT_INLINE_CACHE=1 \
+            --build-arg DOCKER_BUILDKIT=1 \
+            --tag $IMAGE_NAME .
+    fi
+fi
 
 echo "=== Step 3: Start container (background) ==="
 $CONTAINER_TOOL rm -f $CONTAINER_NAME >/dev/null 2>&1 || true
