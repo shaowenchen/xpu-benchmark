@@ -5,7 +5,8 @@ set -e
 # Parse command line arguments
 BUILD_ONLY=false
 TEST_ONLY=false
-SERVE_MODE=false
+START_MODE=false
+STOP_MODE=false
 
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -17,13 +18,17 @@ while [[ $# -gt 0 ]]; do
             TEST_ONLY=true
             shift
             ;;
-        --serve)
-            SERVE_MODE=true
+        --start)
+            START_MODE=true
+            shift
+            ;;
+        --stop)
+            STOP_MODE=true
             shift
             ;;
         *)
             echo "Unknown option: $1"
-            echo "Usage: $0 [--build-only|--test-only|--serve]"
+            echo "Usage: $0 [--build-only|--test-only|--start|--stop]"
             exit 1
             ;;
     esac
@@ -35,8 +40,28 @@ if [ "$BUILD_ONLY" = true ] && [ "$TEST_ONLY" = true ]; then
     exit 1
 fi
 
-if [ "$BUILD_ONLY" = true ] && [ "$SERVE_MODE" = true ]; then
-    echo "[ERROR] Cannot use --build-only and --serve together"
+if [ "$START_MODE" = true ] && [ "$STOP_MODE" = true ]; then
+    echo "[ERROR] Cannot use --start and --stop together"
+    exit 1
+fi
+
+if [ "$START_MODE" = true ] && [ "$BUILD_ONLY" = true ]; then
+    echo "[ERROR] Cannot use --start and --build-only together"
+    exit 1
+fi
+
+if [ "$START_MODE" = true ] && [ "$TEST_ONLY" = true ]; then
+    echo "[ERROR] Cannot use --start and --test-only together"
+    exit 1
+fi
+
+if [ "$STOP_MODE" = true ] && [ "$BUILD_ONLY" = true ]; then
+    echo "[ERROR] Cannot use --stop and --build-only together"
+    exit 1
+fi
+
+if [ "$STOP_MODE" = true ] && [ "$TEST_ONLY" = true ]; then
+    echo "[ERROR] Cannot use --stop and --test-only together"
     exit 1
 fi
 
@@ -68,6 +93,88 @@ check_nerdctl() {
 echo "=== Step 1: Check nerdctl status ==="
 if ! check_nerdctl; then
   exit 1
+fi
+
+# Handle start/stop modes
+if [ "$START_MODE" = true ]; then
+    echo "=== Starting vLLM service ==="
+    
+    # Check if image exists
+    if ! nerdctl images | grep -q "$IMAGE_NAME"; then
+        echo "[ERROR] Image $IMAGE_NAME not found. Please build first with --build-only"
+        exit 1
+    fi
+    
+    # Check if container already exists
+    if nerdctl ps -a | grep -q "$CONTAINER_NAME"; then
+        echo "Container $CONTAINER_NAME already exists"
+        if nerdctl ps | grep -q "$CONTAINER_NAME"; then
+            echo "Container is already running"
+            echo "Container ID: $(nerdctl ps --format 'table {{.ID}}' | grep $CONTAINER_NAME)"
+            echo "Service URL: http://localhost:$HOST_PORT"
+            exit 0
+        else
+            echo "Starting existing container..."
+            nerdctl start $CONTAINER_NAME
+        fi
+    else
+        echo "Creating and starting new container..."
+        nerdctl run -d \
+          --gpus all \
+          --name $CONTAINER_NAME \
+          -p $HOST_PORT:$CONTAINER_PORT \
+          -v "$(pwd)/../reports:/app/reports" \
+          $IMAGE_NAME
+    fi
+    
+    # Wait for service to start
+    echo "Waiting for service to start..."
+    for i in {1..30}; do
+      sleep 2
+      if curl -s http://localhost:$HOST_PORT/health | grep -q '"status"'; then
+        echo "Service started successfully"
+        break
+      fi
+      if [ $i -eq 30 ]; then
+        echo "Service startup timeout"
+        nerdctl logs $CONTAINER_NAME
+        exit 1
+      fi
+    done
+    
+    # Show container information
+    echo ""
+    echo "=== Service Information ==="
+    echo "Container name: $CONTAINER_NAME"
+    echo "Container ID: $(nerdctl ps --format 'table {{.ID}}' | grep $CONTAINER_NAME)"
+    echo "Service URL: http://localhost:$HOST_PORT"
+    echo "Health check: http://localhost:$HOST_PORT/health"
+    echo ""
+    echo "Useful commands:"
+    echo "  View logs: nerdctl logs $CONTAINER_NAME"
+    echo "  Stop service: $0 --stop"
+    echo "  Test API: ./client.sh health"
+    echo ""
+    echo "Service is running in background"
+    exit 0
+fi
+
+if [ "$STOP_MODE" = true ]; then
+    echo "=== Stopping vLLM service ==="
+    
+    if nerdctl ps | grep -q "$CONTAINER_NAME"; then
+        echo "Stopping container $CONTAINER_NAME..."
+        nerdctl stop $CONTAINER_NAME
+        nerdctl rm $CONTAINER_NAME
+        echo "Service stopped"
+    elif nerdctl ps -a | grep -q "$CONTAINER_NAME"; then
+        echo "Removing stopped container $CONTAINER_NAME..."
+        nerdctl rm $CONTAINER_NAME
+        echo "Container removed"
+    else
+        echo "No container $CONTAINER_NAME found"
+    fi
+    exit 0
 fi
 
 # Build section
@@ -194,35 +301,7 @@ EOF
 
     echo "Test report saved to: $REPORT_FILE"
 
-    if [ "$SERVE_MODE" = true ]; then
-        echo "=== Service Mode: Container kept running ==="
-        echo "Container name: $CONTAINER_NAME"
-        echo "Service URL: http://localhost:$HOST_PORT"
-        echo "Health check: http://localhost:$HOST_PORT/health"
-        echo ""
-        echo "Useful commands:"
-        echo "  View logs: nerdctl logs $CONTAINER_NAME"
-        echo "  Stop service: nerdctl stop $CONTAINER_NAME"
-        echo "  Remove container: nerdctl rm $CONTAINER_NAME"
-        echo "  Test API: ./client.sh health"
-        echo ""
-        echo "Service is running. Press Ctrl+C to stop."
-        
-        # Keep the script running and handle Ctrl+C
-        trap 'echo ""; echo "Stopping service..."; nerdctl stop $CONTAINER_NAME; nerdctl rm $CONTAINER_NAME; echo "Service stopped"; exit 0' INT
-        
-        # Wait indefinitely
-        while true; do
-            sleep 10
-            # Check if container is still running
-            if ! nerdctl ps | grep -q "$CONTAINER_NAME"; then
-                echo "Container stopped unexpectedly"
-                exit 1
-            fi
-        done
-    else
-        echo "=== Step 7: Stop container ==="
-        nerdctl rm -f $CONTAINER_NAME
-        echo "=== All steps completed ==="
-    fi
+    echo "=== Step 7: Stop container ==="
+    nerdctl rm -f $CONTAINER_NAME
+    echo "=== All steps completed ==="
 fi 
