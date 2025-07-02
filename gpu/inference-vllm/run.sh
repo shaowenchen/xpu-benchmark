@@ -129,13 +129,13 @@ download_model_concurrent() {
     git config --global http.lowSpeedTime 999999
 
     # Create model directory
-    mkdir -p "model"
+    mkdir -p "/data/models"
 
     # Function to download a single model
     download_single_model() {
         local model_path="$1"
         local model_name=$(basename "$model_path")
-        local target_dir="model/$model_name"
+        local target_dir="/data/models/$model_name"
         
         echo "🚀 Starting download: $model_name"
         
@@ -200,10 +200,10 @@ start_service() {
         nerdctl run -d \
             --gpus all \
             --name $CONTAINER_NAME \
-            --volume $(pwd)/model:/model \
+            --volume /data/models:/data/models \
             -p $HOST_PORT:$CONTAINER_PORT \
             $IMAGE_NAME \
-            --model /model/$model_to_serve
+            --model /data/models/$model_to_serve
     fi
     
     # Show container information

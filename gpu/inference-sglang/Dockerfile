@@ -18,11 +18,11 @@ RUN pip install --no-cache-dir \
     pandas
 
 # Create model directory
-RUN mkdir -p /model
+RUN mkdir -p /data/models
 
 # Set environment variables
-ENV SGLANG_MODEL_PATH=/model
-ENV SGLANG_SERVER_ARGS="--model /model --host 0.0.0.0 --port 8000"
+ENV SGLANG_MODEL_PATH=/data/models
+ENV SGLANG_SERVER_ARGS="--model /data/models --host 0.0.0.0 --port 8000"
 
 # Expose SGLang server port
 EXPOSE 8000
