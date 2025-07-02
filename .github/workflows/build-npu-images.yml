@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        image_type: [training, inference, stress]
+        image_type: [training, inference]
         include:
           - image_type: training
             dockerfile: npu/training/Dockerfile
@@ -26,10 +26,6 @@ jobs:
             dockerfile: npu/inference/Dockerfile
             context: npu/inference
             tag: npu-inference
-          - image_type: stress
-            dockerfile: npu/stress/Dockerfile
-            context: npu/stress
-            tag: npu-stress
 
     steps:
     - name: Checkout repository

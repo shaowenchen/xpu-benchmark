@@ -16,20 +16,24 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        image_type: [training, inference, stress]
+        image_type: [training, inference-vllm, inference-tllm, inference-sglang]
         include:
           # - image_type: training
           #   dockerfile: gpu/training/Dockerfile
           #   context: gpu/training
           #   tag: gpu-training
-          - image_type: inference
-            dockerfile: gpu/inference/Dockerfile
-            context: gpu/inference
-            tag: gpu-inference
-          # - image_type: stress
-          #   dockerfile: gpu/stress/Dockerfile
-          #   context: gpu/stress
-          #   tag: gpu-stress
+          - image_type: inference-vllm
+            dockerfile: gpu/inference-vllm/Dockerfile
+            context: gpu/inference-vllm
+            tag: gpu-inference-vllm
+          - image_type: inference-tllm
+            dockerfile: gpu/inference-tllm/Dockerfile
+            context: gpu/inference-tllm
+            tag: gpu-inference-tllm
+          - image_type: inference-sglang
+            dockerfile: gpu/inference-sglang/Dockerfile
+            context: gpu/inference-sglang
+            tag: gpu-inference-sglang
 
     steps:
     - name: Checkout repository
