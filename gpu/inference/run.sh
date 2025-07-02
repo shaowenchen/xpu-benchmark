@@ -10,7 +10,7 @@ IMAGE_NAME="shaowenchen/xpu-benchmark:gpu-inference"
 CONTAINER_NAME="xpu-benchmark-test"
 HOST_PORT=8000
 CONTAINER_PORT=8000
-DEFAULT_MODEL="https://www.modelscope.cn/models/Qwen/Qwen2.5-7B-Instruct"
+DEFAULT_MODEL="https://huggingface.co/Qwen/Qwen2.5-7B-Instruct"
 MODEL_PATH=""
 # Parse command line arguments
 START_MODE=false
@@ -59,7 +59,7 @@ check_nerdctl() {
     return 0
 }
 
-# Download model from ModelScope
+# Download model using git clone
 download_model() {
     local model_path="$1"
     local model_dir="model"
@@ -69,37 +69,17 @@ download_model() {
         model_path="$DEFAULT_MODEL"
     fi
 
-    echo "=== Downloading model from ModelScope ==="
+    echo "=== Downloading model using git clone ==="
     echo "Model: $model_path"
     echo "Target directory: $model_dir"
 
     # Create model directory
     mkdir -p "$model_dir"
 
-    # Check if modelscope is available
-    if ! python3 -c "import modelscope" 2>/dev/null; then
-        echo "📦 Installing modelscope..."
-        pip install modelscope
-    fi
-
-    # Download model using Python script
-    echo "🚀 Downloading model..."
-    python3 -c "
-import os
-from modelscope import snapshot_download
-
-model_dir = '$model_dir'
-model_path = '$model_path'
-
-try:
-    snapshot_download(model_path, cache_dir=model_dir)
-    print('Model downloaded successfully')
-except Exception as e:
-    print(f'Error downloading model: {e}')
-    exit(1)
-"
-
-    if [ $? -eq 0 ]; then
+    # Download model using git clone
+    echo "🚀 Downloading model with git clone..."
+    
+    if git clone "$model_path" "$model_dir"; then
         echo "✅ Model downloaded successfully!"
         echo "Model location: $(pwd)/$model_dir"
     else
