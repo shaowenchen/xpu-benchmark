@@ -6,6 +6,7 @@ FROM --platform=$TARGETPLATFORM ubuntu:22.04
 ENV DEBIAN_FRONTEND=noninteractive
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
+ENV DEFAULT_MODEL_PATH="/data/models/Qwen3-0.6B-Base"
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
@@ -33,13 +34,20 @@ RUN pip3 install --no-cache-dir -r requirements.txt
 # Copy benchmark script and config
 COPY bert_mindspore.py .
 COPY config.yaml ./config.yaml
+COPY run.sh ./run.sh
+
+# Make run.sh executable
+RUN chmod +x run.sh
 
 # Create output directory
 RUN mkdir -p /app/reports
+
+# Create model directory
+RUN mkdir -p /data/models
 
 # Add health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD python3 -c "import torch; print('PyTorch version:', torch.__version__)" || exit 1
 
 # Set default command
-CMD ["python3", "bert_mindspore.py", "--config", "config.yaml", "--output", "/app/reports"] 
+CMD ["./run.sh"] 

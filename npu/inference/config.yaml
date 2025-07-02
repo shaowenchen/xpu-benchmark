@@ -10,7 +10,7 @@ benchmarks:
       enabled: true
       batch_size: 1
       sequence_length: 512
-      model_path: "/models/bert-base-uncased"
+      model_path: "/data/models/Qwen3-0.6B-Base"
       iterations: 1000
 
 metrics:
