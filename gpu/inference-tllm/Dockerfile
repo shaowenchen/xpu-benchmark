@@ -1,19 +1,10 @@
-FROM nvcr.io/nvidia/pytorch:24.01-py3
+FROM nvcr.io/nvidia/tensorrt-llm/release:0.20.0
 
 # Set working directory
 WORKDIR /workspace
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    git \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
-
-# Install TLLM and dependencies
+# Install additional dependencies
 RUN pip install --no-cache-dir \
-    tensorrt-llm \
-    transformers \
-    accelerate \
     requests \
     numpy \
     pandas \
