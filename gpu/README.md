@@ -121,7 +121,7 @@ List available models:
 - Continuous batching
 - OpenAI-compatible API
 
-**Default Model:** Qwen2.5-7B-Instruct
+**Default Model:** Qwen3-0.6B-Base
 
 **API Endpoints:**
 - `GET /health` - Health check
@@ -137,7 +137,7 @@ List available models:
 - Multi-GPU support
 - Custom server implementation
 
-**Default Model:** Qwen2.5-7B-Instruct
+**Default Model:** Qwen3-0.6B-Base
 
 **API Endpoints:**
 - `GET /health` - Health check
@@ -153,7 +153,7 @@ List available models:
 - Efficient inference
 - Custom server implementation
 
-**Default Model:** Qwen2.5-7B-Instruct
+**Default Model:** Qwen3-0.6B-Base
 
 **API Endpoints:**
 - `GET /health` - Health check
@@ -177,7 +177,7 @@ Models are stored in the `model/` directory within each framework directory. The
 
 ```
 model/
-├── Qwen2.5-7B-Instruct/    # Model files
+├── Qwen3-0.6B-Base/        # Model files
 ├── Llama-2-7b-chat-hf/     # Another model
 └── ...
 ```

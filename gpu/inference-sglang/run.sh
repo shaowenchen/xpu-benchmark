@@ -10,7 +10,7 @@ IMAGE_NAME="shaowenchen/xpu-benchmark:gpu-inference-sglang"
 CONTAINER_NAME="xpu-benchmark-gpu-inference-sglang"
 HOST_PORT=8000
 CONTAINER_PORT=8000
-DEFAULT_MODEL="https://huggingface.co/Qwen/Qwen2.5-7B-Instruct"
+DEFAULT_MODEL="https://huggingface.co/Qwen/Qwen3-0.6B-Base"
 MODEL_PATH=""
 
 # Parse command line arguments

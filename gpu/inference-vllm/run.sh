@@ -10,7 +10,7 @@ IMAGE_NAME="shaowenchen/xpu-benchmark:gpu-inference-vllm"
 CONTAINER_NAME="xpu-benchmark-gpu-inference-vllm"
 HOST_PORT=8000
 CONTAINER_PORT=8000
-DEFAULT_MODEL="https://huggingface.co/Qwen/Qwen2.5-7B-Instruct"
+DEFAULT_MODEL="https://huggingface.co/Qwen/Qwen3-0.6B-Base"
 MODEL_PATH=""
 
 # Parse command line arguments
@@ -64,7 +64,7 @@ done
 # Download model using git clone
 download_model() {
     local model_path="$1"
-    local model_dir="model"
+    local model_dir="/data/models"
 
     # Use default model if no model path provided
     if [ -z "$model_path" ]; then
@@ -80,7 +80,7 @@ download_model() {
     echo "Target directory: $target_dir"
 
     # Create model directory
-    mkdir -p "$model_dir"
+    sudo mkdir -p "$model_dir"
 
     # Configure git for faster cloning
     echo "🔧 Configuring git for faster cloning..."
@@ -95,13 +95,13 @@ download_model() {
     
     if git clone --depth 1 --single-branch "$model_path" "$target_dir"; then
         echo "✅ Model downloaded successfully!"
-        echo "Model location: $(pwd)/$target_dir"
+        echo "Model location: $target_dir"
         
         # Pull LFS files
         echo "📥 Pulling LFS files..."
         cd "$target_dir"
         git lfs pull
-        cd ..
+        cd - > /dev/null
         
         echo "✅ LFS files downloaded successfully!"
     else
