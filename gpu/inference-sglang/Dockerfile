@@ -1,26 +1,21 @@
-FROM nvcr.io/nvidia/pytorch:24.01-py3
+FROM lmsysorg/sglang:v0.4.8-cu126
 
 # Set working directory
 WORKDIR /workspace
 
-# Install system dependencies
+# Install additional system dependencies if needed
 RUN apt-get update && apt-get install -y \
-    git \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Install SGLang and dependencies
+# Install additional Python dependencies
 RUN pip install --no-cache-dir \
-    sglang \
-    transformers \
-    accelerate \
-    requests \
-    numpy \
-    pandas \
     flask \
     flask-cors \
     fastapi \
-    uvicorn
+    uvicorn \
+    requests \
+    pandas
 
 # Create model directory
 RUN mkdir -p /model
