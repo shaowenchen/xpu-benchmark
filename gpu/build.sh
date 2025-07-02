@@ -142,19 +142,19 @@ main() {
     local build_failed=false
     
     if [ "$BUILD_VLLM" = true ]; then
-        if ! build_image "vLLM" "gpu/inference-vllm" "$REGISTRY/$PROJECT:gpu-inference-vllm"; then
+        if ! build_image "vLLM" "inference-vllm" "$REGISTRY/$PROJECT:gpu-inference-vllm"; then
             build_failed=true
         fi
     fi
     
     if [ "$BUILD_TLLM" = true ]; then
-        if ! build_image "TLLM" "gpu/inference-tllm" "$REGISTRY/$PROJECT:gpu-inference-tllm"; then
+        if ! build_image "TLLM" "inference-tllm" "$REGISTRY/$PROJECT:gpu-inference-tllm"; then
             build_failed=true
         fi
     fi
     
     if [ "$BUILD_SGLANG" = true ]; then
-        if ! build_image "SGLang" "gpu/inference-sglang" "$REGISTRY/$PROJECT:gpu-inference-sglang"; then
+        if ! build_image "SGLang" "inference-sglang" "$REGISTRY/$PROJECT:gpu-inference-sglang"; then
             build_failed=true
         fi
     fi
