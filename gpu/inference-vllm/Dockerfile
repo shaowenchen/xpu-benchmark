@@ -2,14 +2,6 @@ FROM vllm/vllm-openai:v0.9.1
 
 # Set working directory
 WORKDIR /workspace
-
-# Install additional dependencies
-RUN pip install --no-cache-dir \
-    requests \
-    numpy \
-    pandas \
-    openai
-
 # Create model directory
 RUN mkdir -p /data/models
 

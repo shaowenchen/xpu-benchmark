@@ -3,20 +3,6 @@ FROM lmsysorg/sglang:v0.4.8-cu126
 # Set working directory
 WORKDIR /workspace
 
-# Install additional system dependencies if needed
-RUN apt-get update && apt-get install -y \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
-
-# Install additional Python dependencies
-RUN pip install --no-cache-dir \
-    flask \
-    flask-cors \
-    fastapi \
-    uvicorn \
-    requests \
-    pandas
-
 # Create model directory
 RUN mkdir -p /data/models
 

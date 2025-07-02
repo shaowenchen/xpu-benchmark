@@ -3,14 +3,6 @@ FROM nvcr.io/nvidia/tensorrt-llm/release:0.20.0
 # Set working directory
 WORKDIR /workspace
 
-# Install additional dependencies
-RUN pip install --no-cache-dir \
-    requests \
-    numpy \
-    pandas \
-    flask \
-    flask-cors
-
 # Create model directory
 RUN mkdir -p /data/models
 
