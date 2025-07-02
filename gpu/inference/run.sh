@@ -76,12 +76,27 @@ download_model() {
     # Create model directory
     mkdir -p "$model_dir"
 
-    # Download model using git clone
-    echo "🚀 Downloading model with git clone..."
+    # Configure git for faster cloning
+    echo "🔧 Configuring git for faster cloning..."
+    git config --global http.postBuffer 524288000
+    git config --global core.compression 9
+    git config --global http.lowSpeedLimit 0
+    git config --global http.lowSpeedTime 999999
+
+    # Download model using git clone with LFS
+    echo "🚀 Downloading model with git clone (LFS enabled)..."
     
-    if git clone "$model_path" "$model_dir"; then
+    if git clone --depth 1 --single-branch "$model_path" "$model_dir"; then
         echo "✅ Model downloaded successfully!"
         echo "Model location: $(pwd)/$model_dir"
+        
+        # Pull LFS files
+        echo "📥 Pulling LFS files..."
+        cd "$model_dir"
+        git lfs pull
+        cd ..
+        
+        echo "✅ LFS files downloaded successfully!"
     else
         echo "❌ Model download failed"
         exit 1
