@@ -1,14 +1,40 @@
 #!/bin/bash
 
-# vLLM Client Test Script for Qwen2.5-7B-Instruct
-# Test various API endpoints using curl
+# vLLM Client Test Script
+# Test various API endpoints using curl with dynamic model support
 
 set -e
 
 # Configuration
 SERVER_URL="http://localhost:8000"
-MODEL_NAME="Qwen2.5-7B-Instruct"
+DEFAULT_MODEL="Qwen2.5-7B-Instruct"
+MODEL_NAME="/model/$DEFAULT_MODEL"
 API_KEY="dummy"
+
+# Parse command line arguments
+while [[ $# -gt 0 ]]; do
+    case $1 in
+    --model)
+        if [ -n "$2" ] && [[ ! "$2" =~ ^- ]]; then
+            MODEL_NAME="/model/$2"
+            shift 2
+        else
+            shift
+        fi
+        ;;
+    --url)
+        if [ -n "$2" ] && [[ ! "$2" =~ ^- ]]; then
+            SERVER_URL="$2"
+            shift 2
+        else
+            shift
+        fi
+        ;;
+    *)
+        break
+        ;;
+    esac
+done
 
 # Colors for output
 RED='\033[0;31m'
@@ -67,6 +93,7 @@ test_chat_completion() {
     
     log_info "Testing chat completion..."
     log_info "Prompt: $prompt"
+    log_info "Model: $MODEL_NAME"
     
     response=$(curl -s -w "%{http_code}" \
         -H "Content-Type: application/json" \
@@ -107,6 +134,7 @@ test_completion() {
     
     log_info "Testing completion API..."
     log_info "Prompt: $prompt"
+    log_info "Model: $MODEL_NAME"
     
     response=$(curl -s -w "%{http_code}" \
         -H "Content-Type: application/json" \
@@ -170,6 +198,7 @@ benchmark_test() {
     local prompt="${2:-"Generate a short story about AI."}"
     
     log_info "Running benchmark test with $num_requests requests..."
+    log_info "Model: $MODEL_NAME"
     
     start_time=$(get_time)
     successful_requests=0
@@ -217,6 +246,7 @@ benchmark_test() {
     
     echo ""
     log_info "📊 Benchmark Results:"
+    echo "Model: $MODEL_NAME"
     echo "Total requests: $num_requests"
     echo "Successful requests: $successful_requests"
     echo "Total time: ${total_time}s"
@@ -227,6 +257,7 @@ benchmark_test() {
 # Test different scenarios
 test_scenarios() {
     log_info "Running various test scenarios..."
+    log_info "Model: $MODEL_NAME"
     
     # Test 1: Simple greeting
     echo ""
@@ -274,7 +305,7 @@ test_error_handling() {
     response=$(curl -s -w "%{http_code}" \
         -H "Content-Type: application/json" \
         -d "{
-            \"model\": \"invalid-model\",
+            \"model\": \"/model/invalid-model\",
             \"messages\": [
                 {\"role\": \"user\", \"content\": \"Hello\"}
             ],
@@ -316,9 +347,23 @@ test_error_handling() {
     echo "Response: $body"
 }
 
+# Quick test function
+quick_test() {
+    log_info "Running quick test..."
+    log_info "Model: $MODEL_NAME"
+    
+    echo ""
+    log_info "=== Quick Chat Test ==="
+    test_chat_completion "Hello! Please respond with a short greeting." 30
+    
+    echo ""
+    log_info "=== Quick Completion Test ==="
+    test_completion "The best way to learn programming is" 30
+}
+
 # Main function
 main() {
-    echo "=== vLLM Client Test Script for Qwen2.5-7B-Instruct ==="
+    echo "=== vLLM Client Test Script ==="
     echo "Server URL: $SERVER_URL"
     echo "Model: $MODEL_NAME"
     echo ""
@@ -380,11 +425,34 @@ case "${1:-all}" in
     "errors")
         test_error_handling
         ;;
+    "quick")
+        quick_test
+        ;;
     "all")
         main
         ;;
     *)
-        echo "Usage: $0 [health|chat|completion|models|benchmark|scenarios|errors|all]"
+        echo "Usage: $0 [--model MODEL_NAME] [--url SERVER_URL] [health|chat|completion|models|benchmark|scenarios|errors|quick|all]"
+        echo ""
+        echo "Options:"
+        echo "  --model MODEL_NAME    Specify model name (default: $DEFAULT_MODEL)"
+        echo "  --url SERVER_URL      Specify server URL (default: $SERVER_URL)"
+        echo ""
+        echo "Commands:"
+        echo "  health                Test server health"
+        echo "  chat [prompt] [tokens] Test chat completion"
+        echo "  completion [prompt] [tokens] Test completion API"
+        echo "  models                List available models"
+        echo "  benchmark [count] [prompt] Run benchmark test"
+        echo "  scenarios             Run various test scenarios"
+        echo "  errors                Test error handling"
+        echo "  quick                 Run quick test"
+        echo "  all                   Run all tests"
+        echo ""
+        echo "Examples:"
+        echo "  $0 --model Qwen2.5-7B-Instruct quick"
+        echo "  $0 --url http://localhost:8000 chat 'Hello world' 50"
+        echo "  $0 --model DialoGPT-medium benchmark 10"
         exit 1
         ;;
 esac
