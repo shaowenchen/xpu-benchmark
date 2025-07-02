@@ -16,6 +16,8 @@ MODEL_PATH=""
 START_MODE=false
 STOP_MODE=false
 MODEL_MODE=false
+CONCURRENT_MODE=false
+MODEL_URLS=()
 
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -36,14 +38,23 @@ while [[ $# -gt 0 ]]; do
             shift
         fi
         ;;
+    --concurrent)
+        CONCURRENT_MODE=true
+        shift
+        while [[ $# -gt 0 ]] && [[ ! "$1" =~ ^- ]]; do
+            MODEL_URLS+=("$1")
+            shift
+        done
+        ;;
     *)
         echo "Unknown option: $1"
-        echo "Usage: $0 [--start|--stop|--model [model_path]]"
+        echo "Usage: $0 [--start|--stop|--model [model_path]|--concurrent model1 model2 ...]"
         echo ""
         echo "Options:"
         echo "  --start              Start service"
         echo "  --stop               Stop service"
-        echo "  --model [model_path] Default model: $DEFAULT_MODEL"
+        echo "  --model [model_path] Download single model (default: $DEFAULT_MODEL)"
+        echo "  --concurrent model1 model2 ... Download multiple models in parallel"
         exit 1
         ;;
     esac
@@ -86,6 +97,7 @@ download_model() {
     git config --global core.compression 9
     git config --global http.lowSpeedLimit 0
     git config --global http.lowSpeedTime 999999
+    git config --global lfs.concurrenttransfers 10
 
     # Download model using git clone with LFS
     echo "🚀 Downloading model with git clone (LFS enabled)..."
@@ -105,6 +117,63 @@ download_model() {
         echo "❌ Model download failed"
         exit 1
     fi
+}
+
+# Download multiple models concurrently
+download_model_concurrent() {
+    local model_urls=("$@")
+    
+    if [ ${#model_urls[@]} -eq 0 ]; then
+        echo "❌ No model URLs provided for concurrent download"
+        exit 1
+    fi
+
+    echo "=== Downloading ${#model_urls[@]} models concurrently ==="
+    
+    # Configure git for faster cloning
+    echo "🔧 Configuring git for faster cloning..."
+    git config --global http.postBuffer 524288000
+    git config --global core.compression 9
+    git config --global http.lowSpeedLimit 0
+    git config --global http.lowSpeedTime 999999
+
+    # Create model directory
+    mkdir -p "model"
+
+    # Function to download a single model
+    download_single_model() {
+        local model_path="$1"
+        local model_name=$(basename "$model_path")
+        local target_dir="model/$model_name"
+        
+        echo "🚀 Starting download: $model_name"
+        
+        if git clone --depth 1 --single-branch "$model_path" "$target_dir"; then
+            echo "📥 Pulling LFS files for $model_name..."
+            cd "$target_dir"
+            git lfs pull
+            cd ..
+            echo "✅ $model_name downloaded successfully!"
+        else
+            echo "❌ Failed to download $model_name"
+            return 1
+        fi
+    }
+
+    # Download all models in parallel
+    local pids=()
+    for model_url in "${model_urls[@]}"; do
+        download_single_model "$model_url" &
+        pids+=($!)
+    done
+
+    # Wait for all downloads to complete
+    echo "⏳ Waiting for all downloads to complete..."
+    for pid in "${pids[@]}"; do
+        wait $pid
+    done
+
+    echo "🎉 All downloads completed!"
 }
 
 # Start vLLM service
@@ -202,10 +271,13 @@ elif [ "$START_MODE" = true ]; then
     start_service
 elif [ "$STOP_MODE" = true ]; then
     stop_service
+elif [ "$CONCURRENT_MODE" = true ]; then
+    download_model_concurrent "${MODEL_URLS[@]}"
 else
     echo "=== GPU Inference Test Runner with vLLM ==="
     echo "Please specify an action:"
     echo "  $0 --start              # Start vLLM service"
     echo "  $0 --stop               # Stop vLLM service"
     echo "  $0 --model <model_path> # Default model: $DEFAULT_MODEL"
+    echo "  $0 --concurrent model1 model2 ... Download multiple models in parallel"
 fi
