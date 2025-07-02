@@ -69,9 +69,13 @@ download_model() {
         model_path="$DEFAULT_MODEL"
     fi
 
+    # Extract model name from URL for subdirectory
+    local model_name=$(basename "$model_path")
+    local target_dir="$model_dir/$model_name"
+
     echo "=== Downloading model using git clone ==="
     echo "Model: $model_path"
-    echo "Target directory: $model_dir"
+    echo "Target directory: $target_dir"
 
     # Create model directory
     mkdir -p "$model_dir"
@@ -86,13 +90,13 @@ download_model() {
     # Download model using git clone with LFS
     echo "🚀 Downloading model with git clone (LFS enabled)..."
     
-    if git clone --depth 1 --single-branch "$model_path" "$model_dir"; then
+    if git clone --depth 1 --single-branch "$model_path" "$target_dir"; then
         echo "✅ Model downloaded successfully!"
-        echo "Model location: $(pwd)/$model_dir"
+        echo "Model location: $(pwd)/$target_dir"
         
         # Pull LFS files
         echo "📥 Pulling LFS files..."
-        cd "$model_dir"
+        cd "$target_dir"
         git lfs pull
         cd ..
         
