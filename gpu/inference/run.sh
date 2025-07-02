@@ -199,10 +199,10 @@ start_service() {
         nerdctl run -d \
             --gpus all \
             --name $CONTAINER_NAME \
+            --model /model/$model_to_serve \
             --volume $(pwd)/model:/model \
             -p $HOST_PORT:$CONTAINER_PORT \
-            $IMAGE_NAME \
-            serve /model/$model_to_serve
+            $IMAGE_NAME
     fi
     # Show container information
     echo ""
