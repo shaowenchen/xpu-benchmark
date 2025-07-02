@@ -8,7 +8,6 @@ set -e
 # Configuration
 REGISTRY="shaowenchen"
 PROJECT="xpu-benchmark"
-PLATFORMS="linux/amd64,linux/arm64"
 
 # Parse command line arguments
 BUILD_VLLM=false
@@ -16,7 +15,6 @@ BUILD_TLLM=false
 BUILD_SGLANG=false
 BUILD_ALL=false
 PUSH_IMAGES=false
-PLATFORM=""
 
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -40,16 +38,8 @@ while [[ $# -gt 0 ]]; do
         PUSH_IMAGES=true
         shift
         ;;
-    --platform)
-        if [ -n "$2" ] && [[ ! "$2" =~ ^- ]]; then
-            PLATFORM="$2"
-            shift 2
-        else
-            shift
-        fi
-        ;;
     --help|-h)
-        echo "Usage: $0 [--vllm|--tllm|--sglang|--all] [--push] [--platform platform]"
+        echo "Usage: $0 [--vllm|--tllm|--sglang|--all] [--push]"
         echo ""
         echo "Options:"
         echo "  --vllm                   Build vLLM image"
@@ -57,13 +47,11 @@ while [[ $# -gt 0 ]]; do
         echo "  --sglang                 Build SGLang image"
         echo "  --all                    Build all images"
         echo "  --push                   Push images to registry after building"
-        echo "  --platform platform      Target platform (default: $PLATFORMS)"
         echo "  --help, -h               Show this help message"
         echo ""
         echo "Examples:"
         echo "  $0 --all                 # Build all images"
         echo "  $0 --vllm --push         # Build and push vLLM image"
-        echo "  $0 --tllm --platform linux/amd64  # Build TLLM for AMD64 only"
         exit 0
         ;;
     *)
@@ -98,6 +86,21 @@ log_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
+# Check if nerdctl is available
+check_nerdctl() {
+    if command -v nerdctl >/dev/null 2>&1; then
+        log_info "Using nerdctl: $(nerdctl --version)"
+        CONTAINER_CMD="nerdctl"
+    elif command -v docker >/dev/null 2>&1; then
+        log_info "Using docker: $(docker --version)"
+        CONTAINER_CMD="docker"
+    else
+        log_error "Neither nerdctl nor docker is installed or not in PATH"
+        log_info "Please install nerdctl or docker first"
+        exit 1
+    fi
+}
+
 # Build function
 build_image() {
     local framework="$1"
@@ -108,16 +111,8 @@ build_image() {
     log_info "Context: $context"
     log_info "Tag: $tag"
     
-    # Set platform
-    local build_platform=""
-    if [ -n "$PLATFORM" ]; then
-        build_platform="--platform $PLATFORM"
-    else
-        build_platform="--platform $PLATFORMS"
-    fi
-    
     # Build command
-    local build_cmd="nerdctl build $build_platform -t $tag $context"
+    local build_cmd="$CONTAINER_CMD build -f $context/Dockerfile -t $tag $context"
     
     log_info "Build command: $build_cmd"
     
@@ -127,7 +122,7 @@ build_image() {
         # Push if requested
         if [ "$PUSH_IMAGES" = true ]; then
             log_info "Pushing $framework image..."
-            if nerdctl push "$tag"; then
+            if $CONTAINER_CMD push "$tag"; then
                 log_success "$framework image pushed successfully"
             else
                 log_error "Failed to push $framework image"
@@ -142,35 +137,9 @@ build_image() {
     fi
 }
 
-# Check if nerdctl is available
-check_nerdctl() {
-    if ! command -v nerdctl >/dev/null 2>&1; then
-        log_error "nerdctl is not installed or not in PATH"
-        log_info "Please install nerdctl first: https://github.com/containerd/nerdctl"
-        exit 1
-    fi
-    
-    log_info "Using nerdctl: $(nerdctl --version)"
-}
-
-# Check if buildx is available
-check_buildx() {
-    if ! nerdctl buildx ls >/dev/null 2>&1; then
-        log_warning "buildx not available, falling back to single platform builds"
-        PLATFORM=""
-    else
-        log_info "buildx is available for multi-platform builds"
-    fi
-}
-
 # Main execution
 main() {
-    log_info "=== GPU Inference Framework Build Script ==="
-    
-    # Check prerequisites
-    check_nerdctl
-    check_buildx
-    
+    log_info "=== GPU Build Script ==="
     # Determine what to build
     if [ "$BUILD_ALL" = true ]; then
         BUILD_VLLM=true
@@ -221,7 +190,7 @@ main() {
         
         echo ""
         log_info "Available images:"
-        nerdctl images | grep "$REGISTRY/$PROJECT" || log_warning "No images found"
+        $CONTAINER_CMD images | grep "$REGISTRY/$PROJECT" || log_warning "No images found"
     fi
 }
 
