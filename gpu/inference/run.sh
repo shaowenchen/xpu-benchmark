@@ -60,16 +60,6 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# Check if nerdctl is available
-check_nerdctl() {
-    if ! command -v nerdctl &> /dev/null; then
-        echo "❌ nerdctl is not installed or not in PATH"
-        echo "Please install nerdctl first"
-        return 1
-    fi
-    return 0
-}
-
 # Download model using git clone
 download_model() {
     local model_path="$1"
@@ -179,13 +169,6 @@ download_model_concurrent() {
 # Start vLLM service
 start_service() {
     echo "=== Starting vLLM service ==="
-
-    if ! check_nerdctl; then
-        exit 1
-    fi
-
-    echo "🚀 Starting vLLM service with nerdctl..."
-
     # Check if container already exists
     if nerdctl ps -a | grep -q "$CONTAINER_NAME"; then
         echo "Container $CONTAINER_NAME already exists"
@@ -204,26 +187,10 @@ start_service() {
             --gpus all \
             --name $CONTAINER_NAME \
             --volume $(pwd)/model:/model \
-            --volume $(pwd)/reports:/app/reports \
             -p $HOST_PORT:$CONTAINER_PORT \
-            $IMAGE_NAME
+            $IMAGE_NAME \
+            serve /model/$MODEL_PATH
     fi
-
-    # Wait for service to start
-    echo "Waiting for service to start..."
-    for i in {1..30}; do
-        sleep 2
-        if curl -s http://localhost:$HOST_PORT/health | grep -q '"status"'; then
-            echo "Service started successfully"
-            break
-        fi
-        if [ $i -eq 30 ]; then
-            echo "Service startup timeout"
-            nerdctl logs $CONTAINER_NAME
-            exit 1
-        fi
-    done
-
     # Show container information
     echo ""
     echo "=== Service Information ==="
@@ -243,13 +210,6 @@ start_service() {
 # Stop vLLM service
 stop_service() {
     echo "=== Stopping vLLM service ==="
-
-    if ! check_nerdctl; then
-        exit 1
-    fi
-
-    echo "🛑 Stopping vLLM service with nerdctl..."
-
     if nerdctl ps | grep -q "$CONTAINER_NAME"; then
         echo "Stopping container $CONTAINER_NAME..."
         nerdctl stop $CONTAINER_NAME
