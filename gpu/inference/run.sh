@@ -169,6 +169,19 @@ download_model_concurrent() {
 # Start vLLM service
 start_service() {
     echo "=== Starting vLLM service ==="
+    
+    # Determine which model to serve
+    local model_to_serve=""
+    if [ -n "$MODEL_PATH" ]; then
+        # Use the model specified by --model parameter
+        model_to_serve=$(basename "$MODEL_PATH")
+    else
+        # Use the default model
+        model_to_serve=$(basename "$DEFAULT_MODEL")
+    fi
+    
+    echo "Using model: $model_to_serve"
+    
     # Check if container already exists
     if nerdctl ps -a | grep -q "$CONTAINER_NAME"; then
         echo "Container $CONTAINER_NAME already exists"
@@ -189,7 +202,7 @@ start_service() {
             --volume $(pwd)/model:/model \
             -p $HOST_PORT:$CONTAINER_PORT \
             $IMAGE_NAME \
-            serve /model/$MODEL_PATH
+            serve /model/$model_to_serve
     fi
     # Show container information
     echo ""
