@@ -7,7 +7,7 @@ set -e
 
 # Default configuration
 IMAGE_NAME="shaowenchen/xpu-benchmark:gpu-inference"
-CONTAINER_NAME="xpu-benchmark-test"
+CONTAINER_NAME="xpu-benchmark-gpu-inference"
 HOST_PORT=8000
 CONTAINER_PORT=8000
 DEFAULT_MODEL="https://huggingface.co/Qwen/Qwen2.5-7B-Instruct"
