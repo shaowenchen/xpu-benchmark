@@ -97,7 +97,7 @@ build_image() {
     log_info "Tag: $tag"
     
     # Build command
-    local build_cmd="docker build -f $context/Dockerfile -t $tag $context"
+    local build_cmd="nerdctl build -f $context/Dockerfile -t $tag $context"
     
     log_info "Build command: $build_cmd"
     
@@ -107,7 +107,7 @@ build_image() {
         # Push if requested
         if [ "$PUSH_IMAGES" = true ]; then
             log_info "Pushing $framework image..."
-            if docker push "$tag"; then
+            if nerdctl push "$tag"; then
                 log_success "$framework image pushed successfully"
             else
                 log_error "Failed to push $framework image"
@@ -175,7 +175,7 @@ main() {
         
         echo ""
         log_info "Available images:"
-        docker images | grep "$REGISTRY/$PROJECT" || log_warning "No images found"
+        nerdctl images | grep "$REGISTRY/$PROJECT" || log_warning "No images found"
     fi
 }
 
