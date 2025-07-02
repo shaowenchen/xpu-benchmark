@@ -86,21 +86,6 @@ log_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
-# Check if nerdctl is available
-check_nerdctl() {
-    if command -v nerdctl >/dev/null 2>&1; then
-        log_info "Using nerdctl: $(nerdctl --version)"
-        CONTAINER_CMD="nerdctl"
-    elif command -v docker >/dev/null 2>&1; then
-        log_info "Using docker: $(docker --version)"
-        CONTAINER_CMD="docker"
-    else
-        log_error "Neither nerdctl nor docker is installed or not in PATH"
-        log_info "Please install nerdctl or docker first"
-        exit 1
-    fi
-}
-
 # Build function
 build_image() {
     local framework="$1"
@@ -112,7 +97,7 @@ build_image() {
     log_info "Tag: $tag"
     
     # Build command
-    local build_cmd="$CONTAINER_CMD build -f $context/Dockerfile -t $tag $context"
+    local build_cmd="docker build -f $context/Dockerfile -t $tag $context"
     
     log_info "Build command: $build_cmd"
     
@@ -122,7 +107,7 @@ build_image() {
         # Push if requested
         if [ "$PUSH_IMAGES" = true ]; then
             log_info "Pushing $framework image..."
-            if $CONTAINER_CMD push "$tag"; then
+            if docker push "$tag"; then
                 log_success "$framework image pushed successfully"
             else
                 log_error "Failed to push $framework image"
@@ -190,7 +175,7 @@ main() {
         
         echo ""
         log_info "Available images:"
-        $CONTAINER_CMD images | grep "$REGISTRY/$PROJECT" || log_warning "No images found"
+        docker images | grep "$REGISTRY/$PROJECT" || log_warning "No images found"
     fi
 }
 
