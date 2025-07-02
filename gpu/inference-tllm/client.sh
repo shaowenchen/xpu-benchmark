@@ -9,6 +9,7 @@ set -e
 SERVER_URL="http://localhost:8000"
 DEFAULT_PROMPT="Hello, how are you today?"
 DEFAULT_MESSAGE="Hello, can you help me with a question?"
+DEFAULT_MODEL_NAME="Qwen3-0.6B-Base"
 
 # Parse command line arguments
 HEALTH_CHECK=false
@@ -82,6 +83,28 @@ check_server() {
     fi
 }
 
+# Get model name from server
+get_model_name() {
+    local model_name=""
+    
+    # Try to get model name from /v1/models endpoint
+    if response=$(curl -s "$SERVER_URL/v1/models" 2>/dev/null); then
+        if command -v jq >/dev/null 2>&1; then
+            model_name=$(echo "$response" | jq -r ".data[0].id // \"$DEFAULT_MODEL_NAME\"")
+        else
+            # Fallback: extract model name from response without jq
+            model_name=$(echo "$response" | grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -f4)
+        fi
+    fi
+    
+    # If we couldn't get the model name, use default
+    if [ -z "$model_name" ] || [ "$model_name" = "null" ]; then
+        model_name="$DEFAULT_MODEL_NAME"
+    fi
+    
+    echo "$model_name"
+}
+
 # Health check
 health_check() {
     echo "=== Health Check ==="
@@ -132,12 +155,17 @@ chat_completion() {
     
     check_server
     
+    # Get actual model name
+    MODEL_NAME=$(get_model_name)
+    echo "Using model: $MODEL_NAME"
+    echo ""
+    
     echo "💬 Testing chat completion..."
     
     # Prepare request payload
     payload=$(cat <<EOF
 {
-    "model": "default",
+    "model": "$MODEL_NAME",
     "messages": [
         {
             "role": "user",
@@ -186,12 +214,17 @@ text_completion() {
     
     check_server
     
+    # Get actual model name
+    MODEL_NAME=$(get_model_name)
+    echo "Using model: $MODEL_NAME"
+    echo ""
+    
     echo "📝 Testing text completion..."
     
     # Prepare request payload
     payload=$(cat <<EOF
 {
-    "model": "default",
+    "model": "$MODEL_NAME",
     "prompt": "$PROMPT",
     "max_tokens": 100,
     "temperature": 0.7
