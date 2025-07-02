@@ -1,13 +1,13 @@
 #!/bin/bash
 
-# vLLM Inference Test Runner
-# Start vLLM server using nerdctl
+# SGLang Inference Test Runner
+# Start SGLang server using nerdctl
 
 set -e
 
 # Default configuration
-IMAGE_NAME="shaowenchen/xpu-benchmark:gpu-inference-vllm"
-CONTAINER_NAME="xpu-benchmark-gpu-inference-vllm"
+IMAGE_NAME="shaowenchen/xpu-benchmark:gpu-inference-sglang"
+CONTAINER_NAME="xpu-benchmark-gpu-inference-sglang"
 HOST_PORT=8000
 CONTAINER_PORT=8000
 DEFAULT_MODEL="https://huggingface.co/Qwen/Qwen2.5-7B-Instruct"
@@ -52,8 +52,8 @@ while [[ $# -gt 0 ]]; do
         echo "Usage: $0 [--start|--stop|--model [model_path]|--concurrent model1 model2 ...]"
         echo ""
         echo "Options:"
-        echo "  --start              Start vLLM server"
-        echo "  --stop               Stop vLLM server"
+        echo "  --start              Start SGLang server"
+        echo "  --stop               Stop SGLang server"
         echo "  --model [model_path] Download single model (default: $DEFAULT_MODEL)"
         echo "  --concurrent model1 model2 ... Download multiple models in parallel"
         exit 1
@@ -167,9 +167,9 @@ download_model_concurrent() {
     echo "🎉 All downloads completed!"
 }
 
-# Start vLLM service
+# Start SGLang service
 start_service() {
-    echo "=== Starting vLLM service ==="
+    echo "=== Starting SGLang service ==="
     
     # Determine which model to serve
     local model_to_serve=""
@@ -202,8 +202,7 @@ start_service() {
             --name $CONTAINER_NAME \
             --volume $(pwd)/model:/model \
             -p $HOST_PORT:$CONTAINER_PORT \
-            $IMAGE_NAME \
-            --model /model/$model_to_serve
+            $IMAGE_NAME
     fi
     
     # Show container information
@@ -211,10 +210,10 @@ start_service() {
     echo "=== Service Information ==="
     echo "Container name: $CONTAINER_NAME"
     echo "Container ID: $(nerdctl ps --format 'table {{.ID}}' | grep $CONTAINER_NAME)"
-    echo "vLLM Server URL: http://localhost:$HOST_PORT"
+    echo "SGLang Server URL: http://localhost:$HOST_PORT"
     echo "Health check: http://localhost:$HOST_PORT/health"
     echo ""
-    echo "✅ vLLM service started successfully!"
+    echo "✅ SGLang service started successfully!"
     echo ""
     echo "You can now:"
     echo "  - Test the API: ./client.sh health"
@@ -222,9 +221,9 @@ start_service() {
     echo "  - View logs: nerdctl logs $CONTAINER_NAME"
 }
 
-# Stop vLLM service
+# Stop SGLang service
 stop_service() {
-    echo "=== Stopping vLLM service ==="
+    echo "=== Stopping SGLang service ==="
     if nerdctl ps | grep -q "$CONTAINER_NAME"; then
         echo "Stopping container $CONTAINER_NAME..."
         nerdctl stop $CONTAINER_NAME
@@ -249,10 +248,10 @@ elif [ "$STOP_MODE" = true ]; then
 elif [ "$CONCURRENT_MODE" = true ]; then
     download_model_concurrent "${MODEL_URLS[@]}"
 else
-    echo "=== vLLM Inference Test Runner ==="
+    echo "=== SGLang Inference Test Runner ==="
     echo "Please specify an action:"
-    echo "  $0 --start              # Start vLLM server"
-    echo "  $0 --stop               # Stop vLLM server"
+    echo "  $0 --start              # Start SGLang server"
+    echo "  $0 --stop               # Stop SGLang server"
     echo "  $0 --model <model_path> # Default model: $DEFAULT_MODEL"
     echo "  $0 --concurrent model1 model2 ... Download multiple models in parallel"
-fi
+fi 

@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# vLLM Client Test Script
-# Test vLLM API endpoints
+# SGLang Client Test Script
+# Test SGLang API endpoints
 
 set -e
 
@@ -236,7 +236,7 @@ elif [ "$TEXT_COMPLETION" = true ]; then
 elif [ "$MODEL_LIST" = true ]; then
     list_models
 else
-    echo "=== vLLM Client Test Script ==="
+    echo "=== SGLang Client Test Script ==="
     echo "Please specify a command:"
     echo "  $0 health                    # Check server health"
     echo "  $0 chat [message]            # Test chat completion"
@@ -248,4 +248,4 @@ else
     echo "  $0 chat 'What is AI?'"
     echo "  $0 completion 'The future of technology is'"
     echo "  $0 models"
-fi
+fi 
