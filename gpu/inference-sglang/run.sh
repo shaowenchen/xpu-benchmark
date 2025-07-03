@@ -142,6 +142,7 @@ start_service() {
             --volume /data/models:/data/models \
             -p $HOST_PORT:$CONTAINER_PORT \
             $IMAGE_NAME \
+            python3 -m sglang.launch_server \
             --model /data/models/$model_to_serve \
             --tp 1 \
             --mem-fraction-static 0.8 \
