@@ -18,40 +18,40 @@ PUSH_IMAGES=false
 
 while [[ $# -gt 0 ]]; do
     case $1 in
-    --vllm)
+    vllm)
         BUILD_VLLM=true
         shift
         ;;
-    --tllm)
+    tllm)
         BUILD_TLLM=true
         shift
         ;;
-    --sglang)
+    sglang)
         BUILD_SGLANG=true
         shift
         ;;
-    --all)
+    all)
         BUILD_ALL=true
         shift
         ;;
-    --push)
+    push)
         PUSH_IMAGES=true
         shift
         ;;
     --help|-h)
-        echo "Usage: $0 [--vllm|--tllm|--sglang|--all] [--push]"
+        echo "Usage: $0 [vllm|tllm|sglang|all] [push]"
         echo ""
         echo "Options:"
-        echo "  --vllm                   Build vLLM image"
-        echo "  --tllm                   Build TLLM image"
-        echo "  --sglang                 Build SGLang image"
-        echo "  --all                    Build all images"
-        echo "  --push                   Push images to registry after building"
+        echo "  vllm                     Build vLLM image"
+        echo "  tllm                     Build TLLM image"
+        echo "  sglang                   Build SGLang image"
+        echo "  all                      Build all images"
+        echo "  push                     Push images to registry after building"
         echo "  --help, -h               Show this help message"
         echo ""
         echo "Examples:"
-        echo "  $0 --all                 # Build all images"
-        echo "  $0 --vllm --push         # Build and push vLLM image"
+        echo "  $0 all                   # Build all images"
+        echo "  $0 vllm push             # Build and push vLLM image"
         exit 0
         ;;
     *)
