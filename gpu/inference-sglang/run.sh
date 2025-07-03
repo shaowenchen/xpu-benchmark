@@ -17,9 +17,8 @@ MODEL_PATH=""
 START_MODE=false
 STOP_MODE=false
 MODEL_MODE=false
-CONCURRENT_MODE=false
 STATUS_MODE=false
-MODEL_URLS=()
+MODEL_PATH=""
 
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -44,24 +43,15 @@ while [[ $# -gt 0 ]]; do
             shift
         fi
         ;;
-    --concurrent)
-        CONCURRENT_MODE=true
-        shift
-        while [[ $# -gt 0 ]] && [[ ! "$1" =~ ^- ]]; do
-            MODEL_URLS+=("$1")
-            shift
-        done
-        ;;
     *)
         echo "Unknown option: $1"
-        echo "Usage: $0 [--start|--stop|--status|--model [model_path]|--concurrent model1 model2 ...]"
+        echo "Usage: $0 [--start|--stop|--status|--model [model_path]]"
         echo ""
         echo "Options:"
         echo "  --start              Start SGLang server"
         echo "  --stop               Stop SGLang server"
         echo "  --status             Check container status"
         echo "  --model [model_path] Download single model (default: $DEFAULT_MODEL)"
-        echo "  --concurrent model1 model2 ... Download multiple models in parallel"
         exit 1
         ;;
     esac
@@ -80,21 +70,6 @@ download_model() {
         else
             "$top_level_script" --model
         fi
-    else
-        echo "❌ Top-level run.sh not found at $top_level_script"
-        exit 1
-    fi
-}
-
-# Download multiple models concurrently using top-level script
-download_model_concurrent() {
-    local model_urls=("$@")
-    local script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-    local top_level_script="$script_dir/../../run.sh"
-    
-    if [ -f "$top_level_script" ]; then
-        echo "Using top-level model download script..."
-        "$top_level_script" --concurrent "${model_urls[@]}"
     else
         echo "❌ Top-level run.sh not found at $top_level_script"
         exit 1
@@ -213,8 +188,6 @@ elif [ "$START_MODE" = true ]; then
     start_service
 elif [ "$STOP_MODE" = true ]; then
     stop_service
-elif [ "$CONCURRENT_MODE" = true ]; then
-    download_model_concurrent "${MODEL_URLS[@]}"
 elif [ "$STATUS_MODE" = true ]; then
     check_status
 else
@@ -224,5 +197,4 @@ else
     echo "  $0 --stop               # Stop SGLang server"
     echo "  $0 --status             # Check container status"
     echo "  $0 --model <model_path> # Default model: $DEFAULT_MODEL"
-    echo "  $0 --concurrent model1 model2 ... Download multiple models in parallel"
 fi 
