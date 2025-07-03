@@ -253,20 +253,25 @@ check_status() {
     echo "Port mapping: $HOST_PORT:$CONTAINER_PORT"
     echo ""
     
+    # Check if container is running
     if nerdctl ps | grep -q "$CONTAINER_NAME"; then
         echo "✅ Status: RUNNING"
-        echo "Container ID: $(nerdctl ps --format 'table {{.ID}}' | grep $CONTAINER_NAME)"
+        # Get container ID more reliably
+        local container_id=$(nerdctl ps --format '{{.ID}}' | grep -w "$CONTAINER_NAME" || echo "")
+        if [ -n "$container_id" ]; then
+            echo "Container ID: $container_id"
+        fi
         echo "Service URL: http://localhost:$HOST_PORT"
         echo "Health check: http://localhost:$HOST_PORT/health"
         echo ""
         echo "Container details:"
-        nerdctl ps --format "table {{.ID}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}" | grep $CONTAINER_NAME
+        nerdctl ps --format "table {{.ID}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}" | grep -w "$CONTAINER_NAME" || echo "No details available"
     elif nerdctl ps -a | grep -q "$CONTAINER_NAME"; then
         echo "⏸️  Status: STOPPED"
         echo "Container exists but is not running"
         echo ""
         echo "Container details:"
-        nerdctl ps -a --format "table {{.ID}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}" | grep $CONTAINER_NAME
+        nerdctl ps -a --format "table {{.ID}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}" | grep -w "$CONTAINER_NAME" || echo "No details available"
     else
         echo "❌ Status: NOT FOUND"
         echo "Container $CONTAINER_NAME does not exist"
