@@ -27,4 +27,5 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Run build script
-        run: ./gpu/build.sh --all --push
+        run: |
+          cd ./gpu && ./build.sh --all --push
