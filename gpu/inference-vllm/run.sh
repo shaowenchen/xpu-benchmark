@@ -194,7 +194,7 @@ start_service() {
         echo "Container $CONTAINER_NAME already exists"
         if nerdctl ps | grep -q "$CONTAINER_NAME"; then
             echo "Container is already running"
-            echo "Container ID: $(nerdctl ps --format 'table {{.ID}}' | grep $CONTAINER_NAME)"
+            echo "Container ID: $(nerdctl ps | grep "$CONTAINER_NAME" | awk '{print $1}')"
             echo "Service URL: http://localhost:$HOST_PORT"
             exit 0
         else
@@ -216,7 +216,7 @@ start_service() {
     echo ""
     echo "=== Service Information ==="
     echo "Container name: $CONTAINER_NAME"
-    echo "Container ID: $(nerdctl ps --format 'table {{.ID}}' | grep $CONTAINER_NAME)"
+    echo "Container ID: $(nerdctl ps | grep "$CONTAINER_NAME" | awk '{print $1}')"
     echo "vLLM Server URL: http://localhost:$HOST_PORT"
     echo "Health check: http://localhost:$HOST_PORT/health"
     echo ""
@@ -256,8 +256,8 @@ check_status() {
     # Check if container is running
     if nerdctl ps | grep -q "$CONTAINER_NAME"; then
         echo "✅ Status: RUNNING"
-        # Get container ID more reliably
-        local container_id=$(nerdctl ps --format '{{.ID}}' | grep -w "$CONTAINER_NAME" || echo "")
+        # Get container ID using awk
+        local container_id=$(nerdctl ps | grep "$CONTAINER_NAME" | awk '{print $1}')
         if [ -n "$container_id" ]; then
             echo "Container ID: $container_id"
         fi
@@ -265,13 +265,13 @@ check_status() {
         echo "Health check: http://localhost:$HOST_PORT/health"
         echo ""
         echo "Container details:"
-        nerdctl ps --format "table {{.ID}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}" | grep -w "$CONTAINER_NAME" || echo "No details available"
+        nerdctl ps | grep "$CONTAINER_NAME" || echo "No details available"
     elif nerdctl ps -a | grep -q "$CONTAINER_NAME"; then
         echo "⏸️  Status: STOPPED"
         echo "Container exists but is not running"
         echo ""
         echo "Container details:"
-        nerdctl ps -a --format "table {{.ID}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}" | grep -w "$CONTAINER_NAME" || echo "No details available"
+        nerdctl ps -a | grep "$CONTAINER_NAME" || echo "No details available"
     else
         echo "❌ Status: NOT FOUND"
         echo "Container $CONTAINER_NAME does not exist"
