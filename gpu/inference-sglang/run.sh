@@ -15,7 +15,6 @@ MODEL_PATH=""
 # Parse command line arguments
 START_MODE=false
 STOP_MODE=false
-LIST_MODE=false
 STATUS_MODE=false
 MODEL_PATH=""
 
@@ -38,19 +37,20 @@ while [[ $# -gt 0 ]]; do
         STATUS_MODE=true
         shift
         ;;
-    --list)
-        LIST_MODE=true
-        shift
-        ;;
     --help|-h)
-        echo "Usage: $0 [--start [model_dir]|--stop|--status|--list]"
+        echo "Usage: $0 [--start [model_dir]|--stop|--status]"
         echo ""
         echo "Options:"
         echo "  --start [model_dir]   Start SGLang server with local model dir"
+        echo "                        If no model_dir specified, lists available models"
         echo "  --stop                Stop SGLang server"
         echo "  --status              Check container status"
-        echo "  --list                List models in /data directory"
         echo "  --help, -h            Show this help message"
+        echo ""
+        echo "Examples:"
+        echo "  $0 --start                    # List available models"
+        echo "  $0 --start Qwen2.5-7B-Instruct  # Start with specific model"
+        echo "  $0 --stop                    # Stop the service"
         exit 0
         ;;
     *)
@@ -103,12 +103,20 @@ start_service() {
     if [ -n "$MODEL_PATH" ]; then
         local model_dir="/data/models/$MODEL_PATH"
         if [ ! -d "$model_dir" ]; then
-            echo "❌ Model directory $model_dir does not exist. Please check available models with --list"
+            echo "❌ Model directory $model_dir does not exist. Available models:"
+            echo ""
+            list_models
+            echo "Usage: $0 --start <model_dir>"
+            echo "Example: $0 --start Qwen2.5-7B-Instruct"
             exit 1
         fi
         model_to_serve="$MODEL_PATH"
     else
-        echo "❌ No model specified. Please use --start <model_dir> or check available models with --list"
+        echo "❌ No model specified. Available models:"
+        echo ""
+        list_models
+        echo "Usage: $0 --start <model_dir>"
+        echo "Example: $0 --start Qwen2.5-7B-Instruct"
         exit 1
     fi
     
@@ -135,12 +143,14 @@ start_service() {
             -p $HOST_PORT:$CONTAINER_PORT \
             --ipc=host \
             --shm-size=16g \
-            -e SGLANG_MODEL_PATH=/data/models/$model_to_serve \
-            -e SGLANG_HOST=0.0.0.0 \
-            -e SGLANG_PORT=$CONTAINER_PORT \
-            -e SGLANG_TP=1 \
-            -e SGLANG_MEM_FRACTION=0.8 \
-            $IMAGE_NAME
+            $IMAGE_NAME \
+            --model /data/models/$model_to_serve \
+            --tp 1 \
+            --mem-fraction-static 0.8 \
+            --trust-remote-code \
+            --dtype bfloat16 \
+            --host 0.0.0.0 \
+            --port $CONTAINER_PORT
     fi
     
     # Show container information
@@ -210,9 +220,7 @@ check_status() {
 }
 
 # Main execution
-if [ "$LIST_MODE" = true ]; then
-    list_models
-elif [ "$START_MODE" = true ]; then
+if [ "$START_MODE" = true ]; then
     start_service
 elif [ "$STOP_MODE" = true ]; then
     stop_service
@@ -221,9 +229,12 @@ elif [ "$STATUS_MODE" = true ]; then
 else
     echo "=== SGLang Inference Test Runner ==="
     echo "Please specify an action:"
-    echo "  $0 --start [model_dir]   # Start SGLang server with local model dir"
+    echo "  $0 --start [model_dir]   # Start SGLang server (lists models if no model_dir)"
     echo "  $0 --stop                # Stop SGLang server"
     echo "  $0 --status              # Check container status"
-    echo "  $0 --list                # List models in /data directory"
     echo "  $0 --help                # Show help"
+    echo ""
+    echo "Examples:"
+    echo "  $0 --start                    # List available models"
+    echo "  $0 --start Qwen2.5-7B-Instruct  # Start with specific model"
 fi 
