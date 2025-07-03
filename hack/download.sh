@@ -69,15 +69,32 @@ download_model() {
     git config --global core.compression 9
     git config --global http.lowSpeedLimit 0
     git config --global http.lowSpeedTime 999999
+    
+    # Additional speed optimizations
+    git config --global core.preloadindex true
+    git config --global core.fscache true
+    git config --global gc.auto 256
+    git config --global pack.threads 0
+    git config --global pack.windowMemory 256m
+    git config --global pack.packSizeLimit 2g
 
     # Download model using git clone with LFS
     echo "🚀 Downloading model..."
     echo "📥 Cloning repository (this may take a while)..."
-    git clone --progress "$model_path" "$target_dir"
+    
+    # Use shallow clone for faster initial download
+    git clone --progress --depth 1 "$model_path" "$target_dir"
     
     echo "📦 Downloading LFS files..."
     cd "$target_dir"
-    git lfs pull --progress
+    
+    # Configure LFS for parallel downloads
+    git config lfs.concurrenttransfers 8
+    git config lfs.transfer.maxretries 3
+    git config lfs.transfer.maxverifies 3
+    
+    # Pull LFS files with progress
+    GIT_LFS_PROGRESS=1 git lfs pull --progress
     
     echo "✅ Download completed successfully!"
     echo "📍 Model saved to: $target_dir"
