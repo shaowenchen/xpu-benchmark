@@ -72,22 +72,10 @@ download_model() {
 
     # Download model using git clone with LFS
     echo "🚀 Downloading model..."
-    
-    if git clone --depth 1 --single-branch "$model_path" "$target_dir"; then
-        echo "✅ Model downloaded successfully!"
-        
-        # Pull LFS files
-        echo "📥 Pulling LFS files..."
-        cd "$target_dir"
-        git lfs pull
-        cd - > /dev/null
-        
-        echo "✅ Download completed!"
-        echo "Model location: $target_dir"
-    else
-        echo "❌ Model download failed"
-        exit 1
-    fi
+
+    git clone "$model_path" "$target_dir"
+    cd "$target_dir"
+    git lfs pull
 }
 
 # Main execution
