@@ -72,7 +72,6 @@ download_model() {
 
     # Download model using git clone with LFS
     echo "🚀 Downloading model..."
-
     git clone "$model_path" "$target_dir"
     cd "$target_dir"
     git lfs pull
