@@ -57,21 +57,51 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# Download model using top-level script
+# Download model using git clone
 download_model() {
     local model_path="$1"
-    local script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-    local top_level_script="$script_dir/../../run.sh"
+    local model_dir="/data/models"
+
+    # Use default model if no model path provided
+    if [ -z "$model_path" ]; then
+        model_path="$DEFAULT_MODEL"
+    fi
+
+    # Extract model name from URL for subdirectory
+    local model_name=$(basename "$model_path")
+    local target_dir="$model_dir/$model_name"
+
+    echo "=== Downloading model using git clone ==="
+    echo "Model: $model_path"
+    echo "Target directory: $target_dir"
+
+    # Create model directory
+    mkdir -p "$model_dir"
+
+    # Configure git for faster cloning
+    echo "🔧 Configuring git for faster cloning..."
+    git config --global http.postBuffer 524288000
+    git config --global core.compression 9
+    git config --global http.lowSpeedLimit 0
+    git config --global http.lowSpeedTime 999999
+    git config --global lfs.concurrenttransfers 10
+
+    # Download model using git clone with LFS
+    echo "🚀 Downloading model with git clone (LFS enabled)..."
     
-    if [ -f "$top_level_script" ]; then
-        echo "Using top-level model download script..."
-        if [ -n "$model_path" ]; then
-            "$top_level_script" --model "$model_path"
-        else
-            "$top_level_script" --model
-        fi
+    if git clone --depth 1 --single-branch "$model_path" "$target_dir"; then
+        echo "✅ Model downloaded successfully!"
+        echo "Model location: $target_dir"
+        
+        # Pull LFS files
+        echo "📥 Pulling LFS files..."
+        cd "$target_dir"
+        git lfs pull
+        cd - > /dev/null
+        
+        echo "✅ LFS files downloaded successfully!"
     else
-        echo "❌ Top-level run.sh not found at $top_level_script"
+        echo "❌ Model download failed"
         exit 1
     fi
 }
