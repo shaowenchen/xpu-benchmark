@@ -1,6 +1,7 @@
 name: Build GPU Docker Images
 
 on:
+  workflow_dispatch:
   push:
     branches: [master]
     paths:
