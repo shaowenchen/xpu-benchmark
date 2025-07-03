@@ -2,11 +2,6 @@ name: Build GPU Docker Images
 
 on:
   workflow_dispatch:
-  push:
-    branches: [master]
-    paths:
-      - "gpu/**"
-      - ".github/workflows/build-gpu-images.yml"
 
 jobs:
   build:
