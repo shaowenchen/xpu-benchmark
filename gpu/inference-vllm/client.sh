@@ -78,7 +78,7 @@ done
 check_server() {
     if ! curl -s "$SERVER_URL/health" > /dev/null 2>&1; then
         echo "❌ Server is not running at $SERVER_URL"
-        echo "Please start the server first: ./run.sh --start"
+        echo "Please start the server first: ./run.sh start"
         exit 1
     fi
 }

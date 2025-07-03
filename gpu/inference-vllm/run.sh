@@ -21,7 +21,7 @@ MODEL_PATH=""
 
 while [[ $# -gt 0 ]]; do
     case $1 in
-    --start)
+    start)
         START_MODE=true
         if [ -n "$2" ] && [[ ! "$2" =~ ^- ]]; then
             MODEL_PATH="$2"
@@ -30,11 +30,11 @@ while [[ $# -gt 0 ]]; do
             shift
         fi
         ;;
-    --stop)
+    stop)
         STOP_MODE=true
         shift
         ;;
-    --status)
+    status)
         STATUS_MODE=true
         shift
         ;;
@@ -48,20 +48,20 @@ while [[ $# -gt 0 ]]; do
         fi
         ;;
     --help | -h)
-        echo "Usage: $0 [--start [model_dir]|--stop|--status|--model [model_url]]"
+        echo "Usage: $0 [start [model_dir]|stop|status|--model [model_url]]"
         echo ""
         echo "Options:"
-        echo "  --start [model_dir]   Start vLLM server with local model dir"
+        echo "  start [model_dir]     Start vLLM server with local model dir"
         echo "                        If no model_dir specified, lists available models"
-        echo "  --stop                Stop vLLM server"
-        echo "  --status              Check container status"
+        echo "  stop                  Stop vLLM server"
+        echo "  status                Check container status"
         echo "  --model [model_url]   Download single model from HuggingFace"
         echo "  --help, -h            Show this help message"
         echo ""
         echo "Examples:"
-        echo "  $0 --start                    # List available models"
-        echo "  $0 --start Qwen2.5-7B-Instruct  # Start with specific model"
-        echo "  $0 --stop                    # Stop the service"
+        echo "  $0 start                      # List available models"
+        echo "  $0 start Qwen2.5-7B-Instruct # Start with specific model"
+        echo "  $0 stop                       # Stop the service"
         exit 0
         ;;
     *)
@@ -117,8 +117,8 @@ start_service() {
             echo "❌ Model directory $model_dir does not exist. Available models:"
             echo ""
             list_models
-            echo "Usage: $0 --start <model_dir>"
-            echo "Example: $0 --start Qwen2.5-7B-Instruct"
+            echo "Usage: $0 start <model_dir>"
+            echo "Example: $0 start Qwen2.5-7B-Instruct"
             exit 1
         fi
         model_to_serve="$MODEL_PATH"
@@ -126,8 +126,8 @@ start_service() {
         echo "❌ No model specified. Available models:"
         echo ""
         list_models
-        echo "Usage: $0 --start <model_dir>"
-        echo "Example: $0 --start Qwen2.5-7B-Instruct"
+        echo "Usage: $0 start <model_dir>"
+        echo "Example: $0 start Qwen2.5-7B-Instruct"
         exit 1
     fi
 
@@ -168,7 +168,7 @@ start_service() {
     echo ""
     echo "You can now:"
     echo "  - Test the API: ./client.sh health"
-    echo "  - Stop the service: $0 --stop"
+    echo "  - Stop the service: $0 stop"
     echo "  - View logs: nerdctl logs -f $CONTAINER_NAME"
 }
 
@@ -234,9 +234,12 @@ elif [ "$MODEL_MODE" = true ]; then
 else
     echo "=== vLLM Inference Test Runner ==="
     echo "Please specify an action:"
-    echo "  $0 --start [model_dir]   # Start vLLM server with local model dir"
-    echo "  $0 --stop                # Stop vLLM server"
-    echo "  $0 --status              # Check container status"
-    echo "  $0 --model [model_url]   # Download single model from HuggingFace"
+    echo "  $0 start [model_dir]     # Start vLLM server with local model dir"
+    echo "  $0 stop                  # Stop vLLM server"
+    echo "  $0 status                # Check container status"
     echo "  $0 --help                # Show help"
+    echo ""
+    echo "Examples:"
+    echo "  $0 start                      # List available models"
+    echo "  $0 start Qwen2.5-7B-Instruct # Start with specific model"
 fi
