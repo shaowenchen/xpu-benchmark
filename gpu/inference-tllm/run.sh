@@ -67,110 +67,38 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# Download model using git clone
+# Download model using top-level script
 download_model() {
     local model_path="$1"
-    local model_dir="/data/models"
-
-    # Use default model if no model path provided
-    if [ -z "$model_path" ]; then
-        model_path="$DEFAULT_MODEL"
-    fi
-
-    # Extract model name from URL for subdirectory
-    local model_name=$(basename "$model_path")
-    local target_dir="$model_dir/$model_name"
-
-    echo "=== Downloading model using git clone ==="
-    echo "Model: $model_path"
-    echo "Target directory: $target_dir"
-
-    # Create model directory
-    mkdir -p "$model_dir"
-
-    # Configure git for faster cloning
-    echo "🔧 Configuring git for faster cloning..."
-    git config --global http.postBuffer 524288000
-    git config --global core.compression 9
-    git config --global http.lowSpeedLimit 0
-    git config --global http.lowSpeedTime 999999
-    git config --global lfs.concurrenttransfers 10
-
-    # Download model using git clone with LFS
-    echo "🚀 Downloading model with git clone (LFS enabled)..."
+    local script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    local top_level_script="$script_dir/../../run.sh"
     
-    if git clone --depth 1 --single-branch "$model_path" "$target_dir"; then
-        echo "✅ Model downloaded successfully!"
-        echo "Model location: $(pwd)/$target_dir"
-        
-        # Pull LFS files
-        echo "📥 Pulling LFS files..."
-        cd "$target_dir"
-        git lfs pull
-        cd ..
-        
-        echo "✅ LFS files downloaded successfully!"
+    if [ -f "$top_level_script" ]; then
+        echo "Using top-level model download script..."
+        if [ -n "$model_path" ]; then
+            "$top_level_script" --model "$model_path"
+        else
+            "$top_level_script" --model
+        fi
     else
-        echo "❌ Model download failed"
+        echo "❌ Top-level run.sh not found at $top_level_script"
         exit 1
     fi
 }
 
-# Download multiple models concurrently
+# Download multiple models concurrently using top-level script
 download_model_concurrent() {
     local model_urls=("$@")
+    local script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    local top_level_script="$script_dir/../../run.sh"
     
-    if [ ${#model_urls[@]} -eq 0 ]; then
-        echo "❌ No model URLs provided for concurrent download"
+    if [ -f "$top_level_script" ]; then
+        echo "Using top-level model download script..."
+        "$top_level_script" --concurrent "${model_urls[@]}"
+    else
+        echo "❌ Top-level run.sh not found at $top_level_script"
         exit 1
     fi
-
-    echo "=== Downloading ${#model_urls[@]} models concurrently ==="
-    
-    # Configure git for faster cloning
-    echo "🔧 Configuring git for faster cloning..."
-    git config --global http.postBuffer 524288000
-    git config --global core.compression 9
-    git config --global http.lowSpeedLimit 0
-    git config --global http.lowSpeedTime 999999
-
-    # Create model directory
-    mkdir -p "/data/models"
-
-    # Function to download a single model
-    download_single_model() {
-        local model_path="$1"
-        local model_name=$(basename "$model_path")
-        local target_dir="/data/models/$model_name"
-        
-        echo "🚀 Starting download: $model_name"
-        
-        if git clone --depth 1 --single-branch "$model_path" "$target_dir"; then
-            echo "📥 Pulling LFS files for $model_name..."
-            cd "$target_dir"
-            git lfs pull
-            cd ..
-            echo "✅ $model_name downloaded successfully!"
-        else
-            echo "❌ Failed to download $model_name"
-            return 1
-        fi
-    }
-
-    # Download all models in parallel
-    local pids=()
-    for model_url in "${model_urls[@]}"; do
-        download_single_model "$model_url" &
-        pids+=($!)
-    done
-
-    # Wait for all downloads to complete
-    echo "⏳ Waiting for all downloads to complete..."
-    for pid in "${pids[@]}"; do
-        wait $pid
-    done
-
-    echo "🎉 All downloads completed!"
 }
 
 # Start TLLM service
