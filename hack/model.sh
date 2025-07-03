@@ -31,7 +31,7 @@ while [[ $# -gt 0 ]]; do
         echo "  --help, -h            Show this help message"
         echo ""
         echo "Examples:"
-        echo "  $0 --model https://huggingface.co/Qwen/Qwen3-0.6B-Base"
+        echo "  $0 --model $DEFAULT_MODEL"
         exit 0
         ;;
     *)
