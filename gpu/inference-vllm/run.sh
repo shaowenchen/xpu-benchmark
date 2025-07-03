@@ -10,7 +10,6 @@ IMAGE_NAME="shaowenchen/xpu-benchmark:gpu-inference-vllm"
 CONTAINER_NAME="xpu-benchmark-gpu-inference-vllm"
 HOST_PORT=8000
 CONTAINER_PORT=8000
-DEFAULT_MODEL="https://huggingface.co/Qwen/Qwen3-0.6B-Base"
 MODEL_PATH=""
 
 # Parse command line arguments
@@ -18,13 +17,19 @@ START_MODE=false
 STOP_MODE=false
 MODEL_MODE=false
 STATUS_MODE=false
+LIST_MODE=false
 MODEL_PATH=""
 
 while [[ $# -gt 0 ]]; do
     case $1 in
     --start)
         START_MODE=true
-        shift
+        if [ -n "$2" ] && [[ ! "$2" =~ ^- ]]; then
+            MODEL_PATH="$2"
+            shift 2
+        else
+            shift
+        fi
         ;;
     --stop)
         STOP_MODE=true
@@ -43,85 +48,114 @@ while [[ $# -gt 0 ]]; do
             shift
         fi
         ;;
-    *)
-        echo "Unknown option: $1"
-        echo "Usage: $0 [--start|--stop|--status|--model [model_path]]"
+    --list)
+        LIST_MODE=true
+        shift
+        ;;
+    --help | -h)
+        echo "Usage: $0 [--start [model_dir]|--stop|--status|--model [model_url]|--list]"
         echo ""
         echo "Options:"
-        echo "  --start              Start vLLM server"
-        echo "  --stop               Stop vLLM server"
-        echo "  --status             Check container status"
-        echo "  --model [model_path] Download single model (default: $DEFAULT_MODEL)"
+        echo "  --start [model_dir]   Start vLLM server with local model dir"
+        echo "  --stop                Stop vLLM server"
+        echo "  --status              Check container status"
+        echo "  --model [model_url]   Download single model from HuggingFace"
+        echo "  --list                List models in /data directory"
+        echo "  --help, -h            Show this help message"
+        exit 0
+        ;;
+    *)
+        echo "Unknown option: $1"
+        echo "Use --help for usage information"
         exit 1
         ;;
     esac
 done
 
-# Download model using git clone
-download_model() {
-    local model_path="$1"
-    local model_dir="/data/models"
+# List models in /data directory
+list_models() {
+    echo "=== Models in /data directory ==="
 
-    # Use default model if no model path provided
-    if [ -z "$model_path" ]; then
-        model_path="$DEFAULT_MODEL"
+    if [ ! -d "/data" ]; then
+        echo "❌ /data directory does not exist"
+        exit 1
     fi
 
-    # Extract model name from URL for subdirectory
-    local model_name=$(basename "$model_path")
-    local target_dir="$model_dir/$model_name"
+    echo "Scanning /data directory for models..."
+    echo ""
 
-    echo "=== Downloading model using git clone ==="
-    echo "Model: $model_path"
-    echo "Target directory: $target_dir"
+    # Find all directories in /data that might contain models
+    local found_models=false
 
-    # Create model directory
-    mkdir -p "$model_dir"
+    # Check /data/models specifically
+    if [ -d "/data/models" ]; then
+        echo "📁 /data/models:"
+        if [ -z "$(ls -A "/data/models" 2>/dev/null)" ]; then
+            echo "  (empty)"
+        else
+            found_models=true
+            for model in "/data/models"/*; do
+                if [ -d "$model" ]; then
+                    local model_name=$(basename "$model")
+                    local size=$(du -sh "$model" 2>/dev/null | cut -f1)
+                    echo "  📁 $model_name ($size)"
+                fi
+            done
+        fi
+        echo ""
+    fi
 
-    # Configure git for faster cloning
-    echo "🔧 Configuring git for faster cloning..."
-    git config --global http.postBuffer 524288000
-    git config --global core.compression 9
-    git config --global http.lowSpeedLimit 0
-    git config --global http.lowSpeedTime 999999
-    git config --global lfs.concurrenttransfers 10
+    # Check other potential model directories in /data
+    for dir in /data/*; do
+        if [ -d "$dir" ] && [ "$(basename "$dir")" != "models" ]; then
+            local dir_name=$(basename "$dir")
+            echo "📁 /data/$dir_name:"
+            if [ -z "$(ls -A "$dir" 2>/dev/null)" ]; then
+                echo "  (empty)"
+            else
+                found_models=true
+                for item in "$dir"/*; do
+                    if [ -d "$item" ]; then
+                        local item_name=$(basename "$item")
+                        local size=$(du -sh "$item" 2>/dev/null | cut -f1)
+                        echo "  📁 $item_name ($size)"
+                    elif [ -f "$item" ]; then
+                        local item_name=$(basename "$item")
+                        local size=$(du -sh "$item" 2>/dev/null | cut -f1)
+                        echo "  📄 $item_name ($size)"
+                    fi
+                done
+            fi
+            echo ""
+        fi
+    done
 
-    # Download model using git clone with LFS
-    echo "🚀 Downloading model with git clone (LFS enabled)..."
-    
-    if git clone --depth 1 --single-branch "$model_path" "$target_dir"; then
-        echo "✅ Model downloaded successfully!"
-        echo "Model location: $target_dir"
-        
-        # Pull LFS files
-        echo "📥 Pulling LFS files..."
-        cd "$target_dir"
-        git lfs pull
-        cd - > /dev/null
-        
-        echo "✅ LFS files downloaded successfully!"
-    else
-        echo "❌ Model download failed"
-        exit 1
+    if [ "$found_models" = false ]; then
+        echo "ℹ️  No models found in /data directory"
+        echo "Please download models to /data/models or other /data subdirectories"
     fi
 }
 
 # Start vLLM service
 start_service() {
     echo "=== Starting vLLM service ==="
-    
+
     # Determine which model to serve
     local model_to_serve=""
     if [ -n "$MODEL_PATH" ]; then
-        # Use the model specified by --model parameter
-        model_to_serve=$(basename "$MODEL_PATH")
+        local model_dir="/data/models/$MODEL_PATH"
+        if [ ! -d "$model_dir" ]; then
+            echo "❌ Model directory $model_dir does not exist. Please download it first or check the name."
+            exit 1
+        fi
+        model_to_serve="$MODEL_PATH"
     else
-        # Use the default model
-        model_to_serve=$(basename "$DEFAULT_MODEL")
+        echo "❌ No model specified. Please use --start <model_dir>"
+        exit 1
     fi
-    
+
     echo "Using model: $model_to_serve"
-    
+
     # Check if container already exists
     if nerdctl ps -a | grep -q "$CONTAINER_NAME"; then
         echo "Container $CONTAINER_NAME already exists"
@@ -144,7 +178,7 @@ start_service() {
             $IMAGE_NAME \
             --model /data/models/$model_to_serve
     fi
-    
+
     # Show container information
     echo ""
     echo "=== Service Information ==="
@@ -185,7 +219,7 @@ check_status() {
     echo "Image: $IMAGE_NAME"
     echo "Port mapping: $HOST_PORT:$CONTAINER_PORT"
     echo ""
-    
+
     # Check if container is running
     if nerdctl ps | grep -q "$CONTAINER_NAME"; then
         echo "✅ Status: RUNNING"
@@ -212,19 +246,20 @@ check_status() {
 }
 
 # Main execution
-if [ "$MODEL_MODE" = true ]; then
-    download_model "$MODEL_PATH"
-elif [ "$START_MODE" = true ]; then
+if [ "$START_MODE" = true ]; then
     start_service
 elif [ "$STOP_MODE" = true ]; then
     stop_service
 elif [ "$STATUS_MODE" = true ]; then
     check_status
+elif [ "$LIST_MODE" = true ]; then
+    list_models
 else
     echo "=== vLLM Inference Test Runner ==="
     echo "Please specify an action:"
-    echo "  $0 --start              # Start vLLM server"
-    echo "  $0 --stop               # Stop vLLM server"
-    echo "  $0 --status             # Check container status"
-    echo "  $0 --model <model_path> # Default model: $DEFAULT_MODEL"
+    echo "  $0 --start [model_dir]   # Start vLLM server with local model dir"
+    echo "  $0 --stop                # Stop vLLM server"
+    echo "  $0 --status              # Check container status"
+    echo "  $0 --list                # List models in /data directory"
+    echo "  $0 --help                # Show help"
 fi

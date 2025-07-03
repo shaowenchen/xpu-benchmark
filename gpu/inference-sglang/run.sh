@@ -10,13 +10,12 @@ IMAGE_NAME="shaowenchen/xpu-benchmark:gpu-inference-sglang"
 CONTAINER_NAME="xpu-benchmark-gpu-inference-sglang"
 HOST_PORT=8000
 CONTAINER_PORT=8000
-DEFAULT_MODEL="https://huggingface.co/Qwen/Qwen3-0.6B-Base"
 MODEL_PATH=""
 
 # Parse command line arguments
 START_MODE=false
 STOP_MODE=false
-MODEL_MODE=false
+LIST_MODE=false
 STATUS_MODE=false
 MODEL_PATH=""
 
@@ -24,7 +23,12 @@ while [[ $# -gt 0 ]]; do
     case $1 in
     --start)
         START_MODE=true
-        shift
+        if [ -n "$2" ] && [[ ! "$2" =~ ^- ]]; then
+            MODEL_PATH="$2"
+            shift 2
+        else
+            shift
+        fi
         ;;
     --stop)
         STOP_MODE=true
@@ -34,75 +38,90 @@ while [[ $# -gt 0 ]]; do
         STATUS_MODE=true
         shift
         ;;
-    --model)
-        MODEL_MODE=true
-        if [ -n "$2" ] && [[ ! "$2" =~ ^- ]]; then
-            MODEL_PATH="$2"
-            shift 2
-        else
-            shift
-        fi
+    --list)
+        LIST_MODE=true
+        shift
+        ;;
+    --help|-h)
+        echo "Usage: $0 [--start [model_dir]|--stop|--status|--list]"
+        echo ""
+        echo "Options:"
+        echo "  --start [model_dir]   Start SGLang server with local model dir"
+        echo "  --stop                Stop SGLang server"
+        echo "  --status              Check container status"
+        echo "  --list                List models in /data directory"
+        echo "  --help, -h            Show this help message"
+        exit 0
         ;;
     *)
         echo "Unknown option: $1"
-        echo "Usage: $0 [--start|--stop|--status|--model [model_path]]"
-        echo ""
-        echo "Options:"
-        echo "  --start              Start SGLang server"
-        echo "  --stop               Stop SGLang server"
-        echo "  --status             Check container status"
-        echo "  --model [model_path] Download single model (default: $DEFAULT_MODEL)"
+        echo "Use --help for usage information"
         exit 1
         ;;
     esac
 done
 
-# Download model using git clone
-download_model() {
-    local model_path="$1"
-    local model_dir="/data/models"
-
-    # Use default model if no model path provided
-    if [ -z "$model_path" ]; then
-        model_path="$DEFAULT_MODEL"
-    fi
-
-    # Extract model name from URL for subdirectory
-    local model_name=$(basename "$model_path")
-    local target_dir="$model_dir/$model_name"
-
-    echo "=== Downloading model using git clone ==="
-    echo "Model: $model_path"
-    echo "Target directory: $target_dir"
-
-    # Create model directory
-    mkdir -p "$model_dir"
-
-    # Configure git for faster cloning
-    echo "🔧 Configuring git for faster cloning..."
-    git config --global http.postBuffer 524288000
-    git config --global core.compression 9
-    git config --global http.lowSpeedLimit 0
-    git config --global http.lowSpeedTime 999999
-    git config --global lfs.concurrenttransfers 10
-
-    # Download model using git clone with LFS
-    echo "🚀 Downloading model with git clone (LFS enabled)..."
+# List available models
+list_models() {
+    echo "=== Models in /data directory ==="
     
-    if git clone --depth 1 --single-branch "$model_path" "$target_dir"; then
-        echo "✅ Model downloaded successfully!"
-        echo "Model location: $target_dir"
-        
-        # Pull LFS files
-        echo "📥 Pulling LFS files..."
-        cd "$target_dir"
-        git lfs pull
-        cd - > /dev/null
-        
-        echo "✅ LFS files downloaded successfully!"
-    else
-        echo "❌ Model download failed"
+    if [ ! -d "/data" ]; then
+        echo "❌ /data directory does not exist"
         exit 1
+    fi
+    
+    echo "Scanning /data directory for models..."
+    echo ""
+    
+    # Find all directories in /data that might contain models
+    local found_models=false
+    
+    # Check /data/models specifically
+    if [ -d "/data/models" ]; then
+        echo "📁 /data/models:"
+        if [ -z "$(ls -A "/data/models" 2>/dev/null)" ]; then
+            echo "  (empty)"
+        else
+            found_models=true
+            for model in "/data/models"/*; do
+                if [ -d "$model" ]; then
+                    local model_name=$(basename "$model")
+                    local size=$(du -sh "$model" 2>/dev/null | cut -f1)
+                    echo "  📁 $model_name ($size)"
+                fi
+            done
+        fi
+        echo ""
+    fi
+    
+    # Check other potential model directories in /data
+    for dir in /data/*; do
+        if [ -d "$dir" ] && [ "$(basename "$dir")" != "models" ]; then
+            local dir_name=$(basename "$dir")
+            echo "📁 /data/$dir_name:"
+            if [ -z "$(ls -A "$dir" 2>/dev/null)" ]; then
+                echo "  (empty)"
+            else
+                found_models=true
+                for item in "$dir"/*; do
+                    if [ -d "$item" ]; then
+                        local item_name=$(basename "$item")
+                        local size=$(du -sh "$item" 2>/dev/null | cut -f1)
+                        echo "  📁 $item_name ($size)"
+                    elif [ -f "$item" ]; then
+                        local item_name=$(basename "$item")
+                        local size=$(du -sh "$item" 2>/dev/null | cut -f1)
+                        echo "  📄 $item_name ($size)"
+                    fi
+                done
+            fi
+            echo ""
+        fi
+    done
+    
+    if [ "$found_models" = false ]; then
+        echo "ℹ️  No models found in /data directory"
+        echo "Please download models to /data/models or other /data subdirectories"
     fi
 }
 
@@ -113,11 +132,15 @@ start_service() {
     # Determine which model to serve
     local model_to_serve=""
     if [ -n "$MODEL_PATH" ]; then
-        # Use the model specified by --model parameter
-        model_to_serve=$(basename "$MODEL_PATH")
+        local model_dir="/data/models/$MODEL_PATH"
+        if [ ! -d "$model_dir" ]; then
+            echo "❌ Model directory $model_dir does not exist. Please check available models with --list"
+            exit 1
+        fi
+        model_to_serve="$MODEL_PATH"
     else
-        # Use the default model
-        model_to_serve=$(basename "$DEFAULT_MODEL")
+        echo "❌ No model specified. Please use --start <model_dir> or check available models with --list"
+        exit 1
     fi
     
     echo "Using model: $model_to_serve"
@@ -212,8 +235,8 @@ check_status() {
 }
 
 # Main execution
-if [ "$MODEL_MODE" = true ]; then
-    download_model "$MODEL_PATH"
+if [ "$LIST_MODE" = true ]; then
+    list_models
 elif [ "$START_MODE" = true ]; then
     start_service
 elif [ "$STOP_MODE" = true ]; then
@@ -223,8 +246,9 @@ elif [ "$STATUS_MODE" = true ]; then
 else
     echo "=== SGLang Inference Test Runner ==="
     echo "Please specify an action:"
-    echo "  $0 --start              # Start SGLang server"
-    echo "  $0 --stop               # Stop SGLang server"
-    echo "  $0 --status             # Check container status"
-    echo "  $0 --model <model_path> # Default model: $DEFAULT_MODEL"
+    echo "  $0 --start [model_dir]   # Start SGLang server with local model dir"
+    echo "  $0 --stop                # Stop SGLang server"
+    echo "  $0 --status              # Check container status"
+    echo "  $0 --list                # List models in /data directory"
+    echo "  $0 --help                # Show help"
 fi 
