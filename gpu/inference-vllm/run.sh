@@ -18,6 +18,7 @@ START_MODE=false
 STOP_MODE=false
 MODEL_MODE=false
 CONCURRENT_MODE=false
+STATUS_MODE=false
 MODEL_URLS=()
 
 while [[ $# -gt 0 ]]; do
@@ -28,6 +29,10 @@ while [[ $# -gt 0 ]]; do
         ;;
     --stop)
         STOP_MODE=true
+        shift
+        ;;
+    --status)
+        STATUS_MODE=true
         shift
         ;;
     --model)
@@ -49,11 +54,12 @@ while [[ $# -gt 0 ]]; do
         ;;
     *)
         echo "Unknown option: $1"
-        echo "Usage: $0 [--start|--stop|--model [model_path]|--concurrent model1 model2 ...]"
+        echo "Usage: $0 [--start|--stop|--status|--model [model_path]|--concurrent model1 model2 ...]"
         echo ""
         echo "Options:"
         echo "  --start              Start vLLM server"
         echo "  --stop               Stop vLLM server"
+        echo "  --status             Check container status"
         echo "  --model [model_path] Download single model (default: $DEFAULT_MODEL)"
         echo "  --concurrent model1 model2 ... Download multiple models in parallel"
         exit 1
@@ -239,6 +245,34 @@ stop_service() {
     fi
 }
 
+# Check container status
+check_status() {
+    echo "=== Container Status ==="
+    echo "Container name: $CONTAINER_NAME"
+    echo "Image: $IMAGE_NAME"
+    echo "Port mapping: $HOST_PORT:$CONTAINER_PORT"
+    echo ""
+    
+    if nerdctl ps | grep -q "$CONTAINER_NAME"; then
+        echo "✅ Status: RUNNING"
+        echo "Container ID: $(nerdctl ps --format 'table {{.ID}}' | grep $CONTAINER_NAME)"
+        echo "Service URL: http://localhost:$HOST_PORT"
+        echo "Health check: http://localhost:$HOST_PORT/health"
+        echo ""
+        echo "Container details:"
+        nerdctl ps --format "table {{.ID}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}" | grep $CONTAINER_NAME
+    elif nerdctl ps -a | grep -q "$CONTAINER_NAME"; then
+        echo "⏸️  Status: STOPPED"
+        echo "Container exists but is not running"
+        echo ""
+        echo "Container details:"
+        nerdctl ps -a --format "table {{.ID}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}" | grep $CONTAINER_NAME
+    else
+        echo "❌ Status: NOT FOUND"
+        echo "Container $CONTAINER_NAME does not exist"
+    fi
+}
+
 # Main execution
 if [ "$MODEL_MODE" = true ]; then
     download_model "$MODEL_PATH"
@@ -248,11 +282,14 @@ elif [ "$STOP_MODE" = true ]; then
     stop_service
 elif [ "$CONCURRENT_MODE" = true ]; then
     download_model_concurrent "${MODEL_URLS[@]}"
+elif [ "$STATUS_MODE" = true ]; then
+    check_status
 else
     echo "=== vLLM Inference Test Runner ==="
     echo "Please specify an action:"
     echo "  $0 --start              # Start vLLM server"
     echo "  $0 --stop               # Stop vLLM server"
+    echo "  $0 --status             # Check container status"
     echo "  $0 --model <model_path> # Default model: $DEFAULT_MODEL"
     echo "  $0 --concurrent model1 model2 ... Download multiple models in parallel"
 fi
