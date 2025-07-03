@@ -19,10 +19,6 @@ jobs:
       matrix:
         image_type: [inference-vllm, inference-tllm, inference-sglang]
         include:
-          - image_type: training
-            dockerfile: gpu/training/Dockerfile
-            context: gpu/training
-            tag: gpu-training
           - image_type: inference-vllm
             dockerfile: gpu/inference-vllm/Dockerfile
             context: gpu/inference-vllm
