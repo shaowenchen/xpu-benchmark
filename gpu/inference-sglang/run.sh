@@ -141,8 +141,6 @@ start_service() {
             --name $CONTAINER_NAME \
             --volume /data/models:/data/models \
             -p $HOST_PORT:$CONTAINER_PORT \
-            --ipc=host \
-            --shm-size=16g \
             $IMAGE_NAME \
             --model /data/models/$model_to_serve \
             --tp 1 \
