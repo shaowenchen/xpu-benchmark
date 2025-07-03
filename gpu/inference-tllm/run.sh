@@ -150,7 +150,7 @@ start_service() {
     echo "You can now:"
     echo "  - Test the API: ./client.sh health"
     echo "  - Stop the service: $0 --stop"
-    echo "  - View logs: nerdctl logs $CONTAINER_NAME"
+    echo "  - View logs: nerdctl logs -f $CONTAINER_NAME"
 }
 
 # Stop TLLM service

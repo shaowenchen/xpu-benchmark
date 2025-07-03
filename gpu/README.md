@@ -234,7 +234,7 @@ To compare performance between frameworks:
 1. **Server won't start:**
    - Check if GPU is available: `nvidia-smi`
    - Verify nerdctl is installed: `nerdctl --version`
-   - Check container logs: `nerdctl logs <container_name>`
+   - Check container logs: `nerdctl logs -f <container_name>`
 
 2. **Model download fails:**
    - Ensure Git LFS is installed: `git lfs version`
@@ -244,7 +244,7 @@ To compare performance between frameworks:
 3. **API requests fail:**
    - Check server health: `./client.sh health`
    - Verify server is running: `nerdctl ps`
-   - Check server logs: `nerdctl logs <container_name>`
+   - Check server logs: `nerdctl logs -f <container_name>`
 
 ### Port Conflicts
 
