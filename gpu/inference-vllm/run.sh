@@ -81,11 +81,8 @@ list_models() {
         exit 1
     fi
 
-    echo "Scanning /data directory for models..."
+    echo "Scanning /data/models directory for models..."
     echo ""
-
-    # Find all directories in /data that might contain models
-    local found_models=false
 
     # Check /data/models specifically
     if [ -d "/data/models" ]; then
@@ -93,7 +90,6 @@ list_models() {
         if [ -z "$(ls -A "/data/models" 2>/dev/null)" ]; then
             echo "  (empty)"
         else
-            found_models=true
             for model in "/data/models"/*; do
                 if [ -d "$model" ]; then
                     local model_name=$(basename "$model")
@@ -103,36 +99,9 @@ list_models() {
             done
         fi
         echo ""
-    fi
-
-    # Check other potential model directories in /data
-    for dir in /data/*; do
-        if [ -d "$dir" ] && [ "$(basename "$dir")" != "models" ]; then
-            local dir_name=$(basename "$dir")
-            echo "📁 /data/$dir_name:"
-            if [ -z "$(ls -A "$dir" 2>/dev/null)" ]; then
-                echo "  (empty)"
-            else
-                found_models=true
-                for item in "$dir"/*; do
-                    if [ -d "$item" ]; then
-                        local item_name=$(basename "$item")
-                        local size=$(du -sh "$item" 2>/dev/null | cut -f1)
-                        echo "  📁 $item_name ($size)"
-                    elif [ -f "$item" ]; then
-                        local item_name=$(basename "$item")
-                        local size=$(du -sh "$item" 2>/dev/null | cut -f1)
-                        echo "  📄 $item_name ($size)"
-                    fi
-                done
-            fi
-            echo ""
-        fi
-    done
-
-    if [ "$found_models" = false ]; then
-        echo "ℹ️  No models found in /data directory"
-        echo "Please download models to /data/models or other /data subdirectories"
+    else
+        echo "❌ /data/models directory does not exist"
+        echo "Please create /data/models directory and download models to it"
     fi
 }
 
