@@ -133,8 +133,14 @@ start_service() {
             --name $CONTAINER_NAME \
             --volume /data/models:/data/models \
             -p $HOST_PORT:$CONTAINER_PORT \
-            $IMAGE_NAME \
-            --model /data/models/$model_to_serve
+            --ipc=host \
+            --shm-size=16g \
+            -e SGLANG_MODEL_PATH=/data/models/$model_to_serve \
+            -e SGLANG_HOST=0.0.0.0 \
+            -e SGLANG_PORT=$CONTAINER_PORT \
+            -e SGLANG_TP=1 \
+            -e SGLANG_MEM_FRACTION=0.8 \
+            $IMAGE_NAME
     fi
     
     # Show container information
