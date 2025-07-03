@@ -8,29 +8,9 @@ on:
       - "gpu/**"
       - ".github/workflows/build-gpu-images.yml"
 
-env:
-  REGISTRY: docker.io
-  IMAGE_NAME: shaowenchen/xpu-benchmark
-
 jobs:
   build:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        image_type: [inference-vllm, inference-tllm, inference-sglang]
-        include:
-          - image_type: inference-vllm
-            dockerfile: gpu/inference-vllm/Dockerfile
-            context: gpu/inference-vllm
-            tag: gpu-inference-vllm
-          - image_type: inference-tllm
-            dockerfile: gpu/inference-tllm/Dockerfile
-            context: gpu/inference-tllm
-            tag: gpu-inference-tllm
-          - image_type: inference-sglang
-            dockerfile: gpu/inference-sglang/Dockerfile
-            context: gpu/inference-sglang
-            tag: gpu-inference-sglang
 
     steps:
       - name: Checkout repository
@@ -46,22 +26,5 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Extract metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          tags: |
-            type=raw,value=${{ matrix.tag }}
-
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v5
-        with:
-          context: ${{ matrix.context }}
-          file: ${{ matrix.dockerfile }}
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-          platforms: linux/amd64
-          push: true
+      - name: Run build script
+        run: ./gpu/build.sh --all --push
