@@ -86,6 +86,18 @@ log_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
+# Detect container tool
+detect_container_tool() {
+    if command -v nerdctl &> /dev/null; then
+        echo "nerdctl"
+    elif command -v docker &> /dev/null; then
+        echo "docker"
+    else
+        log_error "Neither nerdctl nor docker found. Please install one of them."
+        exit 1
+    fi
+}
+
 # Build function
 build_image() {
     local framework="$1"
@@ -97,7 +109,7 @@ build_image() {
     log_info "Tag: $tag"
     
     # Build command
-    local build_cmd="nerdctl build -f $context/Dockerfile -t $tag $context"
+    local build_cmd="$CONTAINER_TOOL build -f $context/Dockerfile -t $tag $context"
     
     log_info "Build command: $build_cmd"
     
@@ -107,7 +119,7 @@ build_image() {
         # Push if requested
         if [ "$PUSH_IMAGES" = true ]; then
             log_info "Pushing $framework image..."
-            if nerdctl push "$tag"; then
+            if $CONTAINER_TOOL push "$tag"; then
                 log_success "$framework image pushed successfully"
             else
                 log_error "Failed to push $framework image"
@@ -125,6 +137,11 @@ build_image() {
 # Main execution
 main() {
     log_info "=== GPU Build Script ==="
+    
+    # Detect container tool
+    CONTAINER_TOOL=$(detect_container_tool)
+    log_info "Using container tool: $CONTAINER_TOOL"
+    
     # Determine what to build
     if [ "$BUILD_ALL" = true ]; then
         BUILD_VLLM=true
@@ -175,7 +192,7 @@ main() {
         
         echo ""
         log_info "Available images:"
-        nerdctl images | grep "$REGISTRY/$PROJECT" || log_warning "No images found"
+        $CONTAINER_TOOL images | grep "$REGISTRY/$PROJECT" || log_warning "No images found"
     fi
 }
 
