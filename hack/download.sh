@@ -72,9 +72,15 @@ download_model() {
 
     # Download model using git clone with LFS
     echo "🚀 Downloading model..."
-    git clone "$model_path" "$target_dir"
+    echo "📥 Cloning repository (this may take a while)..."
+    git clone --progress "$model_path" "$target_dir"
+    
+    echo "📦 Downloading LFS files..."
     cd "$target_dir"
-    git lfs pull
+    git lfs pull --progress
+    
+    echo "✅ Download completed successfully!"
+    echo "📍 Model saved to: $target_dir"
 }
 
 # Main execution
