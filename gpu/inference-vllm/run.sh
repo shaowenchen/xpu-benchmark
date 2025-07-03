@@ -17,7 +17,6 @@ START_MODE=false
 STOP_MODE=false
 MODEL_MODE=false
 STATUS_MODE=false
-LIST_MODE=false
 MODEL_PATH=""
 
 while [[ $# -gt 0 ]]; do
@@ -48,20 +47,21 @@ while [[ $# -gt 0 ]]; do
             shift
         fi
         ;;
-    --list)
-        LIST_MODE=true
-        shift
-        ;;
     --help | -h)
-        echo "Usage: $0 [--start [model_dir]|--stop|--status|--model [model_url]|--list]"
+        echo "Usage: $0 [--start [model_dir]|--stop|--status|--model [model_url]]"
         echo ""
         echo "Options:"
         echo "  --start [model_dir]   Start vLLM server with local model dir"
+        echo "                        If no model_dir specified, lists available models"
         echo "  --stop                Stop vLLM server"
         echo "  --status              Check container status"
         echo "  --model [model_url]   Download single model from HuggingFace"
-        echo "  --list                List models in /data directory"
         echo "  --help, -h            Show this help message"
+        echo ""
+        echo "Examples:"
+        echo "  $0 --start                    # List available models"
+        echo "  $0 --start Qwen2.5-7B-Instruct  # Start with specific model"
+        echo "  $0 --stop                    # Stop the service"
         exit 0
         ;;
     *)
@@ -114,12 +114,20 @@ start_service() {
     if [ -n "$MODEL_PATH" ]; then
         local model_dir="/data/models/$MODEL_PATH"
         if [ ! -d "$model_dir" ]; then
-            echo "❌ Model directory $model_dir does not exist. Please download it first or check the name."
+            echo "❌ Model directory $model_dir does not exist. Available models:"
+            echo ""
+            list_models
+            echo "Usage: $0 --start <model_dir>"
+            echo "Example: $0 --start Qwen2.5-7B-Instruct"
             exit 1
         fi
         model_to_serve="$MODEL_PATH"
     else
-        echo "❌ No model specified. Please use --start <model_dir>"
+        echo "❌ No model specified. Available models:"
+        echo ""
+        list_models
+        echo "Usage: $0 --start <model_dir>"
+        echo "Example: $0 --start Qwen2.5-7B-Instruct"
         exit 1
     fi
 
@@ -221,14 +229,14 @@ elif [ "$STOP_MODE" = true ]; then
     stop_service
 elif [ "$STATUS_MODE" = true ]; then
     check_status
-elif [ "$LIST_MODE" = true ]; then
-    list_models
+elif [ "$MODEL_MODE" = true ]; then
+    start_service
 else
     echo "=== vLLM Inference Test Runner ==="
     echo "Please specify an action:"
     echo "  $0 --start [model_dir]   # Start vLLM server with local model dir"
     echo "  $0 --stop                # Stop vLLM server"
     echo "  $0 --status              # Check container status"
-    echo "  $0 --list                # List models in /data directory"
+    echo "  $0 --model [model_url]   # Download single model from HuggingFace"
     echo "  $0 --help                # Show help"
 fi

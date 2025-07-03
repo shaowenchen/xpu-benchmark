@@ -15,7 +15,6 @@ MODEL_PATH=""
 # Parse command line arguments
 START_MODE=false
 STOP_MODE=false
-LIST_MODE=false
 STATUS_MODE=false
 MODEL_PATH=""
 
@@ -38,19 +37,20 @@ while [[ $# -gt 0 ]]; do
         STATUS_MODE=true
         shift
         ;;
-    --list)
-        LIST_MODE=true
-        shift
-        ;;
     --help|-h)
-        echo "Usage: $0 [--start [model_dir]|--stop|--status|--list]"
+        echo "Usage: $0 [--start [model_dir]|--stop|--status]"
         echo ""
         echo "Options:"
         echo "  --start [model_dir]   Start TLLM server with local model dir"
+        echo "                        If no model_dir specified, lists available models"
         echo "  --stop                Stop TLLM server"
         echo "  --status              Check container status"
-        echo "  --list                List models in /data directory"
         echo "  --help, -h            Show this help message"
+        echo ""
+        echo "Examples:"
+        echo "  $0 --start                    # List available models"
+        echo "  $0 --start Qwen2.5-7B-Instruct  # Start with specific model"
+        echo "  $0 --stop                    # Stop the service"
         exit 0
         ;;
     *)
@@ -103,12 +103,20 @@ start_service() {
     if [ -n "$MODEL_PATH" ]; then
         local model_dir="/data/models/$MODEL_PATH"
         if [ ! -d "$model_dir" ]; then
-            echo "❌ Model directory $model_dir does not exist. Please check available models with --list"
+            echo "❌ Model directory $model_dir does not exist. Available models:"
+            echo ""
+            list_models
+            echo "Usage: $0 --start <model_dir>"
+            echo "Example: $0 --start Qwen2.5-7B-Instruct"
             exit 1
         fi
         model_to_serve="$MODEL_PATH"
     else
-        echo "❌ No model specified. Please use --start <model_dir> or check available models with --list"
+        echo "❌ No model specified. Available models:"
+        echo ""
+        list_models
+        echo "Usage: $0 --start <model_dir>"
+        echo "Example: $0 --start Qwen2.5-7B-Instruct"
         exit 1
     fi
     
@@ -204,9 +212,7 @@ check_status() {
 }
 
 # Main execution
-if [ "$LIST_MODE" = true ]; then
-    list_models
-elif [ "$START_MODE" = true ]; then
+if [ "$START_MODE" = true ]; then
     start_service
 elif [ "$STOP_MODE" = true ]; then
     stop_service
@@ -215,9 +221,12 @@ elif [ "$STATUS_MODE" = true ]; then
 else
     echo "=== TLLM Inference Test Runner ==="
     echo "Please specify an action:"
-    echo "  $0 --start [model_dir]   # Start TLLM server with local model dir"
+    echo "  $0 --start [model_dir]   # Start TLLM server (lists models if no model_dir)"
     echo "  $0 --stop                # Stop TLLM server"
     echo "  $0 --status              # Check container status"
-    echo "  $0 --list                # List models in /data directory"
     echo "  $0 --help                # Show help"
+    echo ""
+    echo "Examples:"
+    echo "  $0 --start                    # List available models"
+    echo "  $0 --start Qwen2.5-7B-Instruct  # Start with specific model"
 fi 
