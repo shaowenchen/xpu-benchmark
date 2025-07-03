@@ -19,9 +19,9 @@ This directory contains the NPU (Neural Processing Unit) inference benchmark for
 
 ### Basic Usage
 
-1. **Using default model**:
+1. **List available models**:
    ```bash
-   ./run.sh
+   ./run.sh --list
    ```
 
 2. **Using custom model**:
@@ -39,13 +39,14 @@ This directory contains the NPU (Neural Processing Unit) inference benchmark for
 | Option | Description | Default |
 |--------|-------------|---------|
 | `--model model_path` | Path to the model directory | `/data/models/Qwen3-0.6B-Base` |
+| `--list` | List models in /data directory | - |
 | `--help`, `-h` | Show help message | - |
 
 ### Examples
 
 ```bash
-# Use default model
-./run.sh
+# List available models
+./run.sh --list
 
 # Use custom model path
 ./run.sh --model /data/models/custom-model

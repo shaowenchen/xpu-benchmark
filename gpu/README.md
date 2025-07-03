@@ -56,17 +56,24 @@ Or build individual frameworks:
 
 Download a model for testing:
 ```bash
-# For vLLM
+# Use the centralized download script
+./hack/download.sh --model https://huggingface.co/Qwen/Qwen3-0.6B-Base
+
+# Or download to specific framework directory
 cd inference-vllm
-./run.sh --model
+./run.sh --model https://huggingface.co/Qwen/Qwen3-0.6B-Base
 
-# For TLLM
 cd inference-tllm
-./run.sh --model
+./run.sh --model https://huggingface.co/Qwen/Qwen3-0.6B-Base
 
-# For SGLang
 cd inference-sglang
-./run.sh --model
+./run.sh --model https://huggingface.co/Qwen/Qwen3-0.6B-Base
+```
+
+List available models in /data directory:
+```bash
+# List models in all frameworks
+./run.sh --list
 ```
 
 Download multiple models concurrently:
@@ -173,13 +180,23 @@ Each framework supports the following environment variables:
 
 ### Model Management
 
-Models are stored in the `model/` directory within each framework directory. The structure is:
+Models are stored in the `/data/models/` directory. The structure is:
 
 ```
-model/
+/data/models/
 ├── Qwen3-0.6B-Base/        # Model files
 ├── Llama-2-7b-chat-hf/     # Another model
 └── ...
+```
+
+List available models:
+```bash
+./run.sh --list
+```
+
+Download new models:
+```bash
+./hack/download.sh --model https://huggingface.co/model-name
 ```
 
 ## Performance Comparison
@@ -247,12 +264,17 @@ To use a custom model:
 
 1. Download the model:
    ```bash
-   ./run.sh --model https://huggingface.co/your-model
+   ./hack/download.sh --model https://huggingface.co/your-model
    ```
 
-2. Start the server:
+2. List available models:
    ```bash
-   ./run.sh --start
+   ./run.sh --list
+   ```
+
+3. Start the server with the model:
+   ```bash
+   ./run.sh --start model-name
    ```
 
 ### Batch Testing
