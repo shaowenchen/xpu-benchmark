@@ -83,7 +83,7 @@ download_model() {
     echo "📥 Cloning repository (this may take a while)..."
     
     # Use shallow clone for faster initial download
-    git clone --progress --depth 1 "$model_path" "$target_dir"
+    git clone --depth 1 "$model_path" "$target_dir"
     
     echo "📦 Downloading LFS files..."
     cd "$target_dir"
@@ -93,8 +93,8 @@ download_model() {
     git config lfs.transfer.maxretries 3
     git config lfs.transfer.maxverifies 3
     
-    # Pull LFS files with progress
-    GIT_LFS_PROGRESS=1 git lfs pull --progress
+    # Pull LFS files
+    git lfs pull
     
     echo "✅ Download completed successfully!"
     echo "📍 Model saved to: $target_dir"
