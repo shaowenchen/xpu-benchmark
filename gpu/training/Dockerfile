@@ -6,24 +6,15 @@ WORKDIR /workspace
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
     curl \
-    wget \
     git \
-    htop \
-    tmux \
-    vim \
     && rm -rf /var/lib/apt/lists/*
 
 # Install additional Python packages
 RUN pip install --no-cache-dir \
     torchvision \
-    torchaudio \
     numpy \
-    matplotlib \
-    tensorboard \
     tqdm \
-    Pillow \
-    jupyter \
-    ipython
+    Pillow
 
 # Create directories
 RUN mkdir -p /data/datasets /data/models /data/logs
