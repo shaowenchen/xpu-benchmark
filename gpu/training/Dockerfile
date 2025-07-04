@@ -14,7 +14,8 @@ RUN pip install --no-cache-dir \
     torchvision \
     numpy \
     tqdm \
-    Pillow
+    Pillow \
+    tensorboard
 
 # Create directories
 RUN mkdir -p /data/datasets /data/models /data/logs
