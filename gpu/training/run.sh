@@ -91,7 +91,7 @@ while [[ $# -gt 0 ]]; do
         echo "  --epochs N           Number of training epochs (default: 10)"
         echo "  --batch-size N       Batch size (default: 128)"
         echo "  --lr F               Learning rate (default: 0.001)"
-        echo "  --dataset NAME       Dataset to use (mnist, cifar10, default: mnist)"
+        echo "  --dataset NAME       Dataset to use (mnist, cifar10, fashion-mnist, default: mnist)"
         echo "  --mixed-precision    Enable mixed precision training"
         echo "  --pretrained         Use pretrained model"
         echo "  --save-model         Save trained model"

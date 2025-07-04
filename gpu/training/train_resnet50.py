@@ -32,7 +32,7 @@ def get_args():
     parser.add_argument('--pretrained', action='store_true', help='Use pretrained model')
     
     # Dataset parameters
-    parser.add_argument('--dataset', type=str, default='mnist', help='Dataset to use (mnist, cifar10)')
+    parser.add_argument('--dataset', type=str, default='mnist', help='Dataset to use (mnist, cifar10, fashion-mnist)')
     parser.add_argument('--data-root', type=str, default='/data/datasets', help='Dataset root directory')
     parser.add_argument('--num-workers', type=int, default=4, help='Number of data loading workers')
     
@@ -103,7 +103,7 @@ class ResNet50Trainer:
             ])
             
             trainset = torchvision.datasets.MNIST(
-                root=self.args.data_root, train=True, download=True, transform=transform_train
+                root=self.args.data_root, train=True, download=False, transform=transform_train
             )
             train_loader = DataLoader(
                 trainset, batch_size=self.args.batch_size, shuffle=True, 
@@ -111,7 +111,7 @@ class ResNet50Trainer:
             )
             
             testset = torchvision.datasets.MNIST(
-                root=self.args.data_root, train=False, download=True, transform=transform_test
+                root=self.args.data_root, train=False, download=False, transform=transform_test
             )
             test_loader = DataLoader(
                 testset, batch_size=self.args.batch_size, shuffle=False, 
@@ -132,7 +132,7 @@ class ResNet50Trainer:
             ])
             
             trainset = torchvision.datasets.CIFAR10(
-                root=self.args.data_root, train=True, download=True, transform=transform_train
+                root=self.args.data_root, train=True, download=False, transform=transform_train
             )
             train_loader = DataLoader(
                 trainset, batch_size=self.args.batch_size, shuffle=True, 
@@ -140,7 +140,38 @@ class ResNet50Trainer:
             )
             
             testset = torchvision.datasets.CIFAR10(
-                root=self.args.data_root, train=False, download=True, transform=transform_test
+                root=self.args.data_root, train=False, download=False, transform=transform_test
+            )
+            test_loader = DataLoader(
+                testset, batch_size=self.args.batch_size, shuffle=False, 
+                num_workers=self.args.num_workers, pin_memory=True
+            )
+        elif self.args.dataset == 'fashion-mnist':
+            # Fashion-MNIST transforms - convert to 3 channels and resize for ResNet
+            transform_train = transforms.Compose([
+                transforms.Resize((32, 32)),  # Resize to match ResNet input expectation
+                transforms.ToTensor(),
+                transforms.Lambda(lambda x: x.repeat(3, 1, 1)),  # Convert grayscale to RGB
+                transforms.Normalize((0.2860, 0.2860, 0.2860), (0.3530, 0.3530, 0.3530)),  # Fashion-MNIST stats repeated for 3 channels
+            ])
+            
+            transform_test = transforms.Compose([
+                transforms.Resize((32, 32)),
+                transforms.ToTensor(),
+                transforms.Lambda(lambda x: x.repeat(3, 1, 1)),
+                transforms.Normalize((0.2860, 0.2860, 0.2860), (0.3530, 0.3530, 0.3530)),
+            ])
+            
+            trainset = torchvision.datasets.FashionMNIST(
+                root=self.args.data_root, train=True, download=False, transform=transform_train
+            )
+            train_loader = DataLoader(
+                trainset, batch_size=self.args.batch_size, shuffle=True, 
+                num_workers=self.args.num_workers, pin_memory=True
+            )
+            
+            testset = torchvision.datasets.FashionMNIST(
+                root=self.args.data_root, train=False, download=False, transform=transform_test
             )
             test_loader = DataLoader(
                 testset, batch_size=self.args.batch_size, shuffle=False, 
