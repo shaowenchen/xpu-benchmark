@@ -24,7 +24,14 @@ while [[ $# -gt 0 ]]; do
             DOWNLOAD_TYPE="model"
             shift 2
         else
-            echo "❌ No model path specified. Please use --model <model_path>"
+            echo "❌ No model URL specified. Please use --model <model_url>"
+            echo ""
+            echo "Examples:"
+            echo "  $0 --model $DEFAULT_MODEL"
+            echo "  $0 --model https://huggingface.co/microsoft/DialoGPT-medium"
+            echo "  $0 --model https://huggingface.co/google/gemma-2b"
+            echo ""
+            echo "ℹ️  Use --help for more information"
             exit 1
         fi
         ;;
@@ -35,6 +42,14 @@ while [[ $# -gt 0 ]]; do
             shift 2
         else
             echo "❌ No dataset URL specified. Please use --dataset <dataset_url>"
+            echo ""
+            echo "Examples:"
+            echo "  $0 --dataset $DEFAULT_DATASET"
+            echo "  $0 --dataset https://huggingface.co/datasets/imdb"
+            echo "  $0 --dataset https://huggingface.co/datasets/squad"
+            echo "  $0 --dataset https://huggingface.co/datasets/wikitext"
+            echo ""
+            echo "ℹ️  Use --help for more information"
             exit 1
         fi
         ;;
@@ -42,17 +57,31 @@ while [[ $# -gt 0 ]]; do
         echo "Usage: $0 [--model model_url] [--dataset dataset_url]"
         echo ""
         echo "Options:"
-        echo "  --model model_url     Download model from URL"
-        echo "  --dataset dataset_url  Download training dataset from URL"
+        echo "  --model model_url      Download model from HuggingFace"
+        echo "  --dataset dataset_url  Download dataset from HuggingFace"
         echo "  --help, -h            Show this help message"
         echo ""
-        echo "Examples:"
+        echo "Model Examples:"
         echo "  $0 --model $DEFAULT_MODEL"
+        echo "  $0 --model https://huggingface.co/microsoft/DialoGPT-medium"
+        echo "  $0 --model https://huggingface.co/google/gemma-2b"
+        echo "  $0 --model https://huggingface.co/meta-llama/Llama-2-7b-hf"
+        echo ""
+        echo "Dataset Examples:"
         echo "  $0 --dataset $DEFAULT_DATASET"
+        echo "  $0 --dataset https://huggingface.co/datasets/imdb"
+        echo "  $0 --dataset https://huggingface.co/datasets/squad"
+        echo "  $0 --dataset https://huggingface.co/datasets/wikitext"
+        echo ""
+        echo "Notes:"
+        echo "  • Both models and datasets are downloaded using git clone with LFS support"
+        echo "  • Files are saved to $MODEL_DIR and $DATASET_DIR respectively"
+        echo "  • The script will skip downloading if the repository already exists"
+        echo "  • Use 'git lfs' commands if you need to manage LFS files manually"
         exit 0
         ;;
     *)
-        echo "Unknown option: $1"
+        echo "❌ Unknown option: $1"
         echo "Use --help for usage information"
         exit 1
         ;;
@@ -187,8 +216,16 @@ elif [ "$DOWNLOAD_TYPE" = "dataset" ]; then
     show_summary "$DOWNLOAD_TYPE"
 else
     echo "=== XPU Benchmark - Download Utility ==="
-    echo "Please specify what to download:"
+    echo "Download models and datasets from HuggingFace using git clone with LFS support"
+    echo ""
+    echo "Usage:"
     echo "  $0 --model <model_url>       # Download model"
     echo "  $0 --dataset <dataset_url>   # Download dataset"
-    echo "  $0 --help                    # Show help"
+    echo "  $0 --help                    # Show detailed help"
+    echo ""
+    echo "Quick Examples:"
+    echo "  $0 --model $DEFAULT_MODEL"
+    echo "  $0 --dataset $DEFAULT_DATASET"
+    echo ""
+    echo "💡 Tip: Use --help for more examples and detailed information"
 fi 
