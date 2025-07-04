@@ -1,4 +1,4 @@
-FROM pytorch/pytorch:2.1.0-cuda11.8-cudnn8-runtime
+FROM pytorch/pytorch:2.7.1-cuda12.6-cudnn9-runtime
 
 # Set working directory
 WORKDIR /workspace
