@@ -55,6 +55,10 @@ while [[ $# -gt 0 ]]; do
         TRAIN_ARGS="$TRAIN_ARGS --dataset $2"
         shift 2
         ;;
+    --data-root)
+        TRAIN_ARGS="$TRAIN_ARGS --data-root $2"
+        shift 2
+        ;;
     --mixed-precision)
         TRAIN_ARGS="$TRAIN_ARGS --mixed-precision"
         shift
@@ -84,6 +88,7 @@ while [[ $# -gt 0 ]]; do
         echo "  --batch-size N       Batch size (default: 128)"
         echo "  --lr F               Learning rate (default: 0.001)"
         echo "  --dataset NAME       Dataset to use (mnist, cifar10, fashion-mnist, default: mnist)"
+        echo "  --data-root PATH     Data root path (default: /data)"
         echo "  --mixed-precision    Enable mixed precision training"
         echo "  --pretrained         Use pretrained model"
         echo "  --save-model         Save trained model"
