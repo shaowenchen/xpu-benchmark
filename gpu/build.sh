@@ -14,6 +14,7 @@ BUILD_VLLM=false
 BUILD_TLLM=false
 BUILD_SGLANG=false
 BUILD_ALL=false
+BUILD_IMAGES=false
 PUSH_IMAGES=false
 
 while [[ $# -gt 0 ]]; do
@@ -34,24 +35,30 @@ while [[ $# -gt 0 ]]; do
         BUILD_ALL=true
         shift
         ;;
-    push)
+    --build)
+        BUILD_IMAGES=true
+        shift
+        ;;
+    --push)
         PUSH_IMAGES=true
         shift
         ;;
     --help|-h)
-        echo "Usage: $0 [vllm|tllm|sglang|all] [push]"
+        echo "Usage: $0 [vllm|tllm|sglang|all] [--build] [--push]"
         echo ""
         echo "Options:"
-        echo "  vllm                     Build vLLM image"
-        echo "  tllm                     Build TLLM image"
-        echo "  sglang                   Build SGLang image"
-        echo "  all                      Build all images"
-        echo "  push                     Push images to registry after building"
+        echo "  vllm                     Select vLLM framework"
+        echo "  tllm                     Select TLLM framework"
+        echo "  sglang                   Select SGLang framework"
+        echo "  all                      Select all frameworks"
+        echo "  --build                  Build the selected images"
+        echo "  --push                   Push images to registry"
         echo "  --help, -h               Show this help message"
         echo ""
         echo "Examples:"
-        echo "  $0 all                   # Build all images"
-        echo "  $0 vllm push             # Build and push vLLM image"
+        echo "  $0 all --build           # Build all images"
+        echo "  $0 vllm --build --push   # Build and push vLLM image"
+        echo "  $0 all --push            # Push all existing images"
         exit 0
         ;;
     *)
@@ -116,8 +123,8 @@ build_image() {
     if eval "$build_cmd"; then
         log_success "$framework image built successfully"
         
-        # Push if requested
-        if [ "$PUSH_IMAGES" = true ]; then
+        # Push if requested and building
+        if [ "$PUSH_IMAGES" = true ] && [ "$BUILD_IMAGES" = true ]; then
             log_info "Pushing $framework image..."
             if $CONTAINER_TOOL push "$tag"; then
                 log_success "$framework image pushed successfully"
@@ -150,7 +157,13 @@ main() {
     fi
     
     if [ "$BUILD_VLLM" = false ] && [ "$BUILD_TLLM" = false ] && [ "$BUILD_SGLANG" = false ]; then
-        log_error "No framework specified for building"
+        log_error "No framework specified"
+        echo "Use --help for usage information"
+        exit 1
+    fi
+    
+    if [ "$BUILD_IMAGES" = false ] && [ "$PUSH_IMAGES" = false ]; then
+        log_error "No action specified (use --build or --push)"
         echo "Use --help for usage information"
         exit 1
     fi
@@ -159,20 +172,50 @@ main() {
     local build_failed=false
     
     if [ "$BUILD_VLLM" = true ]; then
-        if ! build_image "vLLM" "inference-vllm" "$REGISTRY/$PROJECT:gpu-inference-vllm"; then
-            build_failed=true
+        if [ "$BUILD_IMAGES" = true ]; then
+            if ! build_image "vLLM" "inference-vllm" "$REGISTRY/$PROJECT:gpu-inference-vllm"; then
+                build_failed=true
+            fi
+        elif [ "$PUSH_IMAGES" = true ]; then
+            log_info "Pushing vLLM image..."
+            if $CONTAINER_TOOL push "$REGISTRY/$PROJECT:gpu-inference-vllm"; then
+                log_success "vLLM image pushed successfully"
+            else
+                log_error "Failed to push vLLM image"
+                build_failed=true
+            fi
         fi
     fi
     
     if [ "$BUILD_TLLM" = true ]; then
-        if ! build_image "TLLM" "inference-tllm" "$REGISTRY/$PROJECT:gpu-inference-tllm"; then
-            build_failed=true
+        if [ "$BUILD_IMAGES" = true ]; then
+            if ! build_image "TLLM" "inference-tllm" "$REGISTRY/$PROJECT:gpu-inference-tllm"; then
+                build_failed=true
+            fi
+        elif [ "$PUSH_IMAGES" = true ]; then
+            log_info "Pushing TLLM image..."
+            if $CONTAINER_TOOL push "$REGISTRY/$PROJECT:gpu-inference-tllm"; then
+                log_success "TLLM image pushed successfully"
+            else
+                log_error "Failed to push TLLM image"
+                build_failed=true
+            fi
         fi
     fi
     
     if [ "$BUILD_SGLANG" = true ]; then
-        if ! build_image "SGLang" "inference-sglang" "$REGISTRY/$PROJECT:gpu-inference-sglang"; then
-            build_failed=true
+        if [ "$BUILD_IMAGES" = true ]; then
+            if ! build_image "SGLang" "inference-sglang" "$REGISTRY/$PROJECT:gpu-inference-sglang"; then
+                build_failed=true
+            fi
+        elif [ "$PUSH_IMAGES" = true ]; then
+            log_info "Pushing SGLang image..."
+            if $CONTAINER_TOOL push "$REGISTRY/$PROJECT:gpu-inference-sglang"; then
+                log_success "SGLang image pushed successfully"
+            else
+                log_error "Failed to push SGLang image"
+                build_failed=true
+            fi
         fi
     fi
     
@@ -181,10 +224,12 @@ main() {
     log_info "=== Build Summary ==="
     
     if [ "$build_failed" = true ]; then
-        log_error "Some builds failed"
+        log_error "Some operations failed"
         exit 1
     else
-        log_success "All requested builds completed successfully"
+        if [ "$BUILD_IMAGES" = true ]; then
+            log_success "All requested builds completed successfully"
+        fi
         
         if [ "$PUSH_IMAGES" = true ]; then
             log_success "All images pushed to registry"
