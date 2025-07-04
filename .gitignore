@@ -196,3 +196,9 @@ cython_debug/
 # Model directories
 model/
 */model/
+
+# Training reports and logs
+gpu/training/reports/
+gpu/training/logs/
+*.json
+runs/
