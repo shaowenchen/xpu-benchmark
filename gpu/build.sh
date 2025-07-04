@@ -13,6 +13,7 @@ PROJECT="xpu-benchmark"
 BUILD_VLLM=false
 BUILD_TLLM=false
 BUILD_SGLANG=false
+BUILD_TRAINING=false
 BUILD_ALL=false
 BUILD_IMAGES=false
 PUSH_IMAGES=false
@@ -31,6 +32,10 @@ while [[ $# -gt 0 ]]; do
         BUILD_SGLANG=true
         shift
         ;;
+    training)
+        BUILD_TRAINING=true
+        shift
+        ;;
     all)
         BUILD_ALL=true
         shift
@@ -44,12 +49,13 @@ while [[ $# -gt 0 ]]; do
         shift
         ;;
     --help|-h)
-        echo "Usage: $0 [vllm|tllm|sglang|all] [--build] [--push]"
+        echo "Usage: $0 [vllm|tllm|sglang|training|all] [--build] [--push]"
         echo ""
         echo "Options:"
         echo "  vllm                     Select vLLM framework"
         echo "  tllm                     Select TLLM framework"
         echo "  sglang                   Select SGLang framework"
+        echo "  training                 Select training framework"
         echo "  all                      Select all frameworks"
         echo "  --build                  Build the selected images"
         echo "  --push                   Push images to registry"
@@ -57,6 +63,7 @@ while [[ $# -gt 0 ]]; do
         echo ""
         echo "Examples:"
         echo "  $0 all --build           # Build all images"
+        echo "  $0 training --build      # Build training image"
         echo "  $0 vllm --build --push   # Build and push vLLM image"
         echo "  $0 all --push            # Push all existing images"
         exit 0
@@ -154,9 +161,10 @@ main() {
         BUILD_VLLM=true
         BUILD_TLLM=true
         BUILD_SGLANG=true
+        BUILD_TRAINING=true
     fi
     
-    if [ "$BUILD_VLLM" = false ] && [ "$BUILD_TLLM" = false ] && [ "$BUILD_SGLANG" = false ]; then
+    if [ "$BUILD_VLLM" = false ] && [ "$BUILD_TLLM" = false ] && [ "$BUILD_SGLANG" = false ] && [ "$BUILD_TRAINING" = false ]; then
         log_error "No framework specified"
         echo "Use --help for usage information"
         exit 1
@@ -214,6 +222,22 @@ main() {
                 log_success "SGLang image pushed successfully"
             else
                 log_error "Failed to push SGLang image"
+                build_failed=true
+            fi
+        fi
+    fi
+    
+    if [ "$BUILD_TRAINING" = true ]; then
+        if [ "$BUILD_IMAGES" = true ]; then
+            if ! build_image "Training" "training" "$REGISTRY/$PROJECT:gpu-training"; then
+                build_failed=true
+            fi
+        elif [ "$PUSH_IMAGES" = true ]; then
+            log_info "Pushing Training image..."
+            if $CONTAINER_TOOL push "$REGISTRY/$PROJECT:gpu-training"; then
+                log_success "Training image pushed successfully"
+            else
+                log_error "Failed to push Training image"
                 build_failed=true
             fi
         fi
