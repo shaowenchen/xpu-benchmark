@@ -37,7 +37,7 @@ while [[ $# -gt 0 ]]; do
         STATUS_MODE=true
         shift
         ;;
-    --help|-h)
+    --help | -h)
         echo "Usage: $0 [start [model_dir]|stop|status]"
         echo ""
         echo "Options:"
@@ -64,15 +64,15 @@ done
 # List available models
 list_models() {
     echo "=== Models in /data directory ==="
-    
+
     if [ ! -d "/data" ]; then
         echo "❌ /data directory does not exist"
         exit 1
     fi
-    
+
     echo "Scanning /data/models directory for models..."
     echo ""
-    
+
     # Check /data/models specifically
     if [ -d "/data/models" ]; then
         echo "📁 /data/models:"
@@ -97,7 +97,7 @@ list_models() {
 # Start TLLM service
 start_service() {
     echo "=== Starting TLLM service ==="
-    
+
     # Determine which model to serve
     local model_to_serve=""
     if [ -n "$MODEL_PATH" ]; then
@@ -119,9 +119,9 @@ start_service() {
         echo "Example: $0 start Qwen2.5-7B-Instruct"
         exit 1
     fi
-    
+
     echo "Using model: $model_to_serve"
-    
+
     # Check if container already exists
     if nerdctl ps -a | grep -q "$CONTAINER_NAME"; then
         echo "Container $CONTAINER_NAME already exists"
@@ -140,11 +140,20 @@ start_service() {
             --gpus all \
             --name $CONTAINER_NAME \
             --volume /data/models:/data/models \
+            --volume "$(pwd)/extra-llm-api-config.yml:/etc/extra-llm-api-config.yml" \
             -p $HOST_PORT:$CONTAINER_PORT \
             $IMAGE_NAME \
-            --model /data/models/$model_to_serve
+            trtllm-serve \
+            /data/models/$model_to_serve \
+            --host 0.0.0.0 \
+            --port $CONTAINER_PORT \
+            --backend pytorch \
+            --max_batch_size 128 \
+            --max_num_tokens 16384 \
+            --kv_cache_free_gpu_memory_fraction 0.95 \
+            --extra_llm_api_options /etc/extra-llm-api-config.yml
     fi
-    
+
     # Show container information
     echo ""
     echo "=== Service Information ==="
@@ -185,7 +194,7 @@ check_status() {
     echo "Image: $IMAGE_NAME"
     echo "Port mapping: $HOST_PORT:$CONTAINER_PORT"
     echo ""
-    
+
     # Check if container is running
     if nerdctl ps | grep -q "$CONTAINER_NAME"; then
         echo "✅ Status: RUNNING"
@@ -229,4 +238,4 @@ else
     echo "Examples:"
     echo "  $0 start                      # List available models"
     echo "  $0 start Qwen2.5-7B-Instruct # Start with specific model"
-fi 
+fi

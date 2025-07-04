@@ -17,8 +17,15 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
     CMD curl -f http://localhost:8000/health || exit 1
 
-# Copy server script
-COPY server.py /workspace/server.py
+COPY extra-llm-api-config.yml /etc/extra-llm-api-config.yml
 
-# Default command
-CMD ["python", "/workspace/server.py"] 
+# Default command using trtllm-serve
+CMD ["trtllm-serve", \
+     "/data/models", \
+     "--host", "0.0.0.0", \
+     "--port", "8000", \
+     "--backend", "pytorch", \
+     "--max_batch_size", "128", \
+     "--max_num_tokens", "16384", \
+     "--kv_cache_free_gpu_memory_fraction", "0.95", \
+     "--extra_llm_api_options", "/etc/extra-llm-api-config.yml"] 
