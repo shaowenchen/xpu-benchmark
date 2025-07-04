@@ -194,6 +194,8 @@ class ResNet50Trainer:
         correct = 0
         total = 0
         
+        epoch_start_time = time.time()
+        
         for batch_idx, (inputs, targets) in enumerate(self.train_loader):
             inputs, targets = inputs.to(self.device), targets.to(self.device)
             
@@ -219,14 +221,20 @@ class ResNet50Trainer:
             correct += predicted.eq(targets).sum().item()
             
             if batch_idx % 100 == 0:
-                print(f'Epoch {epoch}, Batch {batch_idx}, Loss: {loss.item():.4f}, '
-                      f'Acc: {100.*correct/total:.2f}%')
+                elapsed = time.time() - epoch_start_time
+                progress = 100. * batch_idx / len(self.train_loader)
+                print(f'Epoch {epoch+1}, Batch {batch_idx}/{len(self.train_loader)} ({progress:.1f}%), '
+                      f'Loss: {loss.item():.4f}, Acc: {100.*correct/total:.2f}%, '
+                      f'Time: {elapsed:.1f}s')
         
+        epoch_duration = time.time() - epoch_start_time
         epoch_loss = running_loss / len(self.train_loader)
         epoch_acc = 100. * correct / total
         
+        # Log to TensorBoard
         self.writer.add_scalar('Train/Loss', epoch_loss, epoch)
         self.writer.add_scalar('Train/Accuracy', epoch_acc, epoch)
+        self.writer.add_scalar('Time/Train_Epoch_Duration', epoch_duration, epoch)
         
         return epoch_loss, epoch_acc
     
@@ -235,6 +243,8 @@ class ResNet50Trainer:
         test_loss = 0.0
         correct = 0
         total = 0
+        
+        test_start_time = time.time()
         
         with torch.no_grad():
             for inputs, targets in self.test_loader:
@@ -253,11 +263,14 @@ class ResNet50Trainer:
                 total += targets.size(0)
                 correct += predicted.eq(targets).sum().item()
         
+        test_duration = time.time() - test_start_time
         epoch_loss = test_loss / len(self.test_loader)
         epoch_acc = 100. * correct / total
         
+        # Log to TensorBoard
         self.writer.add_scalar('Test/Loss', epoch_loss, epoch)
         self.writer.add_scalar('Test/Accuracy', epoch_acc, epoch)
+        self.writer.add_scalar('Time/Test_Epoch_Duration', test_duration, epoch)
         
         return epoch_loss, epoch_acc
     
@@ -337,21 +350,41 @@ class ResNet50Trainer:
         
         best_acc = 0.0
         
+        # Record total training start time
+        total_start_time = time.time()
+        epoch_times = []
+        
         for epoch in range(self.args.epochs):
             print(f"\nEpoch {epoch+1}/{self.args.epochs}")
             print("-" * 50)
             
+            # Record epoch start time
+            epoch_start_time = time.time()
+            
             # Train
             train_loss, train_acc = self.train_epoch(epoch)
+            train_time = time.time() - epoch_start_time
             
             # Test
+            test_start_time = time.time()
             test_loss, test_acc = self.test_epoch(epoch)
+            test_time = time.time() - test_start_time
             
             # Update learning rate
             self.scheduler.step()
             
-            print(f"Train Loss: {train_loss:.4f}, Train Acc: {train_acc:.2f}%")
-            print(f"Test Loss: {test_loss:.4f}, Test Acc: {test_acc:.2f}%")
+            # Calculate total epoch time
+            epoch_end_time = time.time()
+            epoch_duration = epoch_end_time - epoch_start_time
+            epoch_times.append(epoch_duration)
+            
+            # Log epoch time to TensorBoard
+            self.writer.add_scalar('Time/Total_Epoch_Duration', epoch_duration, epoch)
+            
+            print(f"📊 Results:")
+            print(f"   Train Loss: {train_loss:.4f}, Train Acc: {train_acc:.2f}% (Time: {train_time:.1f}s)")
+            print(f"   Test Loss: {test_loss:.4f}, Test Acc: {test_acc:.2f}% (Time: {test_time:.1f}s)")
+            print(f"   Total Epoch Time: {epoch_duration:.2f} seconds")
             
             # Save best model
             if test_acc > best_acc:
@@ -360,7 +393,42 @@ class ResNet50Trainer:
                     torch.save(self.model.state_dict(), 
                               os.path.join(self.args.log_dir, 'best_model.pth'))
         
-        print(f"\nTraining completed! Best accuracy: {best_acc:.2f}%")
+        # Calculate total training time
+        total_end_time = time.time()
+        total_duration = total_end_time - total_start_time
+        
+        # Calculate time statistics
+        avg_epoch_time = sum(epoch_times) / len(epoch_times) if epoch_times else 0
+        min_epoch_time = min(epoch_times) if epoch_times else 0
+        max_epoch_time = max(epoch_times) if epoch_times else 0
+        
+        print(f"\n" + "="*70)
+        print(f"🎉 Training completed! Best accuracy: {best_acc:.2f}%")
+        print(f"📊 Time Statistics:")
+        print(f"   Total training time: {total_duration:.2f} seconds ({total_duration/60:.2f} minutes)")
+        print(f"   Average epoch time: {avg_epoch_time:.2f} seconds")
+        print(f"   Fastest epoch: {min_epoch_time:.2f} seconds")
+        print(f"   Slowest epoch: {max_epoch_time:.2f} seconds")
+        print(f"   Epochs completed: {len(epoch_times)}")
+        print(f"="*70)
+        
+        # Save training time statistics
+        time_stats = {
+            'total_duration': total_duration,
+            'total_duration_minutes': total_duration / 60,
+            'avg_epoch_time': avg_epoch_time,
+            'min_epoch_time': min_epoch_time,
+            'max_epoch_time': max_epoch_time,
+            'epoch_times': epoch_times,
+            'epochs_completed': len(epoch_times),
+            'best_accuracy': best_acc
+        }
+        
+        with open(os.path.join(self.args.log_dir, 'training_time_stats.json'), 'w') as f:
+            json.dump(time_stats, f, indent=2)
+        
+        print(f"📝 Time statistics saved to: {os.path.join(self.args.log_dir, 'training_time_stats.json')}")
+        
         self.writer.close()
 
 def main():
