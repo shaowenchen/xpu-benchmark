@@ -27,10 +27,6 @@ COPY benchmark.py /workspace/
 # Set environment variables
 ENV PYTHONPATH=/workspace:$PYTHONPATH
 ENV TORCH_HOME=/data/models
-ENV CUDA_VISIBLE_DEVICES=0
-
-# Expose ports for tensorboard and jupyter
-EXPOSE 6006 8888
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \

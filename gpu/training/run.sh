@@ -8,18 +8,13 @@ set -e
 # Default configuration
 IMAGE_NAME="shaowenchen/xpu-benchmark:gpu-training"
 CONTAINER_NAME="xpu-benchmark-gpu-training"
-HOST_TENSORBOARD_PORT=6006
-CONTAINER_TENSORBOARD_PORT=6006
-HOST_JUPYTER_PORT=8888
-CONTAINER_JUPYTER_PORT=8888
+GPU_DEVICE="all"
 
 # Parse command line arguments
 START_MODE=false
 STOP_MODE=false
 STATUS_MODE=false
 BENCHMARK_MODE=false
-TENSORBOARD_MODE=false
-JUPYTER_MODE=false
 TRAIN_ARGS=""
 
 while [[ $# -gt 0 ]]; do
@@ -40,13 +35,9 @@ while [[ $# -gt 0 ]]; do
         BENCHMARK_MODE=true
         shift
         ;;
-    tensorboard)
-        TENSORBOARD_MODE=true
-        shift
-        ;;
-    jupyter)
-        JUPYTER_MODE=true
-        shift
+    --gpu)
+        GPU_DEVICE="$2"
+        shift 2
         ;;
     --epochs)
         TRAIN_ARGS="$TRAIN_ARGS --epochs $2"
@@ -58,6 +49,10 @@ while [[ $# -gt 0 ]]; do
         ;;
     --lr)
         TRAIN_ARGS="$TRAIN_ARGS --lr $2"
+        shift 2
+        ;;
+    --dataset)
+        TRAIN_ARGS="$TRAIN_ARGS --dataset $2"
         shift 2
         ;;
     --mixed-precision)
@@ -72,20 +67,17 @@ while [[ $# -gt 0 ]]; do
         TRAIN_ARGS="$TRAIN_ARGS --save-model"
         shift
         ;;
-    --dataset)
-        TRAIN_ARGS="$TRAIN_ARGS --dataset $2"
-        shift 2
-        ;;
     --help | -h)
-        echo "Usage: $0 [start|stop|status|benchmark|tensorboard|jupyter] [options]"
+        echo "Usage: $0 [start|stop|status|benchmark] [options]"
         echo ""
         echo "Commands:"
         echo "  start                Start training container"
         echo "  stop                 Stop training container"
         echo "  status               Check container status"
         echo "  benchmark            Run benchmark test"
-        echo "  tensorboard          Start TensorBoard"
-        echo "  jupyter              Start Jupyter notebook"
+        echo ""
+        echo "System Options:"
+        echo "  --gpu DEVICE         GPU device to use (0, 1, 2, ... or 'all', default: all)"
         echo ""
         echo "Training Options:"
         echo "  --epochs N           Number of training epochs (default: 10)"
@@ -97,12 +89,13 @@ while [[ $# -gt 0 ]]; do
         echo "  --save-model         Save trained model"
         echo ""
         echo "Examples:"
-        echo "  $0 start                                    # Start basic training (MNIST)"
+        echo "  $0 start                                    # Start basic training (MNIST, all GPUs)"
+        echo "  $0 start --gpu 0                           # Use GPU 0 only"
+        echo "  $0 start --gpu 1 --dataset cifar10         # Use GPU 1 with CIFAR-10"
         echo "  $0 start --epochs 20 --batch-size 64       # Custom training"
-        echo "  $0 start --dataset cifar10                 # Train on CIFAR-10"
+        echo "  $0 start --dataset fashion-mnist           # Train on Fashion-MNIST"
         echo "  $0 start --mixed-precision --pretrained    # Fast training"
         echo "  $0 benchmark                               # Run benchmark"
-        echo "  $0 tensorboard                             # Start TensorBoard"
         echo "  $0 stop                                    # Stop training"
         exit 0
         ;;
@@ -140,8 +133,6 @@ start_service() {
         if nerdctl ps | grep -q "$CONTAINER_NAME"; then
             echo "Container is already running"
             echo "Container ID: $(nerdctl ps | grep "$CONTAINER_NAME" | awk '{print $1}')"
-            echo "TensorBoard URL: http://localhost:$HOST_TENSORBOARD_PORT"
-            echo "Jupyter URL: http://localhost:$HOST_JUPYTER_PORT"
             exit 0
         else
             echo "Removing existing container..."
@@ -150,20 +141,26 @@ start_service() {
     fi
     
     echo "Creating and starting training container..."
+    echo "GPU device: $GPU_DEVICE"
     echo "Training arguments: $TRAIN_ARGS"
     
     # Build command
     local cmd="python train_resnet50.py $TRAIN_ARGS"
     
+    # Set CUDA_VISIBLE_DEVICES based on GPU selection
+    local cuda_env=""
+    if [ "$GPU_DEVICE" != "all" ]; then
+        cuda_env="-e CUDA_VISIBLE_DEVICES=$GPU_DEVICE"
+    fi
+    
     nerdctl run -d \
-        --gpus all \
+        --gpus $GPU_DEVICE \
         --ipc=host \
         --ulimit memlock=-1 \
         --ulimit stack=67108864 \
         --name $CONTAINER_NAME \
         --volume /data:/data \
-        -p $HOST_TENSORBOARD_PORT:$CONTAINER_TENSORBOARD_PORT \
-        -p $HOST_JUPYTER_PORT:$CONTAINER_JUPYTER_PORT \
+        $cuda_env \
         $IMAGE_NAME \
         bash -c "$cmd"
     
@@ -172,15 +169,12 @@ start_service() {
     echo "=== Training Information ==="
     echo "Container name: $CONTAINER_NAME"
     echo "Container ID: $(nerdctl ps | grep "$CONTAINER_NAME" | awk '{print $1}')"
-    echo "TensorBoard URL: http://localhost:$HOST_TENSORBOARD_PORT"
-    echo "Jupyter URL: http://localhost:$HOST_JUPYTER_PORT"
+    echo "GPU device: $GPU_DEVICE"
     echo ""
     echo "✅ Training started successfully!"
     echo ""
     echo "You can:"
     echo "  - View logs: nerdctl logs -f $CONTAINER_NAME"
-    echo "  - Start TensorBoard: $0 tensorboard"
-    echo "  - Start Jupyter: $0 jupyter"
     echo "  - Stop training: $0 stop"
 }
 
@@ -206,16 +200,11 @@ check_status() {
     echo "=== Training Container Status ==="
     echo "Container name: $CONTAINER_NAME"
     echo "Image: $IMAGE_NAME"
-    echo "Port mappings:"
-    echo "  TensorBoard: $HOST_TENSORBOARD_PORT:$CONTAINER_TENSORBOARD_PORT"
-    echo "  Jupyter: $HOST_JUPYTER_PORT:$CONTAINER_JUPYTER_PORT"
     echo ""
     
     if nerdctl ps | grep -q "$CONTAINER_NAME"; then
         echo "Status: ✅ Running"
         echo "Container ID: $(nerdctl ps | grep "$CONTAINER_NAME" | awk '{print $1}')"
-        echo "TensorBoard: http://localhost:$HOST_TENSORBOARD_PORT"
-        echo "Jupyter: http://localhost:$HOST_JUPYTER_PORT"
         echo ""
         echo "Recent logs:"
         nerdctl logs --tail 10 $CONTAINER_NAME
@@ -241,69 +230,27 @@ run_benchmark() {
     fi
     
     echo "Starting benchmark container..."
+    echo "GPU device: $GPU_DEVICE"
+    
+    # Set CUDA_VISIBLE_DEVICES based on GPU selection
+    local cuda_env=""
+    if [ "$GPU_DEVICE" != "all" ]; then
+        cuda_env="-e CUDA_VISIBLE_DEVICES=$GPU_DEVICE"
+    fi
+    
     nerdctl run --rm \
-        --gpus all \
+        --gpus $GPU_DEVICE \
         --ipc=host \
         --ulimit memlock=-1 \
         --ulimit stack=67108864 \
         --name $benchmark_container \
         --volume /data:/data \
+        $cuda_env \
         $IMAGE_NAME \
         python benchmark.py
     
     echo "✅ Benchmark completed!"
     echo "Results saved to /data/logs/benchmark.json"
-}
-
-# Start TensorBoard
-start_tensorboard() {
-    echo "=== Starting TensorBoard ==="
-    
-    check_data_directory
-    
-    local tensorboard_container="${CONTAINER_NAME}-tensorboard"
-    if nerdctl ps | grep -q "$tensorboard_container"; then
-        echo "TensorBoard is already running"
-        echo "URL: http://localhost:$HOST_TENSORBOARD_PORT"
-        exit 0
-    fi
-    
-    echo "Starting TensorBoard container..."
-    nerdctl run -d \
-        --name $tensorboard_container \
-        --volume /data:/data \
-        -p $HOST_TENSORBOARD_PORT:$CONTAINER_TENSORBOARD_PORT \
-        $IMAGE_NAME \
-        tensorboard --logdir /data/logs --host 0.0.0.0 --port $CONTAINER_TENSORBOARD_PORT
-    
-    echo "✅ TensorBoard started!"
-    echo "URL: http://localhost:$HOST_TENSORBOARD_PORT"
-}
-
-# Start Jupyter
-start_jupyter() {
-    echo "=== Starting Jupyter Notebook ==="
-    
-    check_data_directory
-    
-    local jupyter_container="${CONTAINER_NAME}-jupyter"
-    if nerdctl ps | grep -q "$jupyter_container"; then
-        echo "Jupyter is already running"
-        echo "URL: http://localhost:$HOST_JUPYTER_PORT"
-        exit 0
-    fi
-    
-    echo "Starting Jupyter container..."
-    nerdctl run -d \
-        --gpus all \
-        --name $jupyter_container \
-        --volume /data:/data \
-        -p $HOST_JUPYTER_PORT:$CONTAINER_JUPYTER_PORT \
-        $IMAGE_NAME \
-        jupyter notebook --ip=0.0.0.0 --port=$CONTAINER_JUPYTER_PORT --no-browser --allow-root --NotebookApp.token=''
-    
-    echo "✅ Jupyter started!"
-    echo "URL: http://localhost:$HOST_JUPYTER_PORT"
 }
 
 # Main execution
@@ -315,10 +262,6 @@ elif [ "$STATUS_MODE" = true ]; then
     check_status
 elif [ "$BENCHMARK_MODE" = true ]; then
     run_benchmark
-elif [ "$TENSORBOARD_MODE" = true ]; then
-    start_tensorboard
-elif [ "$JUPYTER_MODE" = true ]; then
-    start_jupyter
 else
     echo "Please specify a command. Use --help for usage information."
     exit 1

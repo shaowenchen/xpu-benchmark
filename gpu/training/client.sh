@@ -23,10 +23,6 @@ while [[ $# -gt 0 ]]; do
         ACTION="results"
         shift
         ;;
-    tensorboard)
-        ACTION="tensorboard"
-        shift
-        ;;
     health)
         ACTION="health"
         shift
@@ -36,12 +32,11 @@ while [[ $# -gt 0 ]]; do
         shift
         ;;
     --help|-h)
-        echo "Usage: $0 [logs|results|tensorboard|health] [--follow]"
+        echo "Usage: $0 [logs|results|health] [--follow]"
         echo ""
         echo "Commands:"
         echo "  logs                     View training logs"
         echo "  results                  Show training results"
-        echo "  tensorboard              Open TensorBoard"
         echo "  health                   Check training health"
         echo ""
         echo "Options:"
@@ -52,7 +47,7 @@ while [[ $# -gt 0 ]]; do
         echo "  $0 logs                  # View recent logs"
         echo "  $0 logs --follow         # Follow logs in real-time"
         echo "  $0 results               # Show training results"
-        echo "  $0 tensorboard           # Open TensorBoard"
+        echo "  $0 health                # Check training health"
         exit 0
         ;;
     *)
@@ -98,9 +93,9 @@ show_results() {
         echo "📁 Log directory: $LOGS_DIR"
         echo ""
         
-        # Show TensorBoard logs
+        # Show training logs
         if [ -d "$LOGS_DIR/runs" ]; then
-            echo "📊 TensorBoard logs:"
+            echo "📊 Training logs:"
             find "$LOGS_DIR/runs" -name "*.log" -o -name "events.out.tfevents.*" | head -10
             echo ""
         fi
@@ -125,22 +120,6 @@ show_results() {
     else
         echo "❌ No logs directory found"
         echo "Make sure training has been started and /data/logs exists"
-    fi
-}
-
-# Open TensorBoard
-open_tensorboard() {
-    echo "=== TensorBoard ==="
-    
-    if [ -d "$LOGS_DIR" ]; then
-        echo "🚀 Opening TensorBoard..."
-        echo "URL: http://localhost:6006"
-        echo ""
-        echo "If TensorBoard is not running, start it with:"
-        echo "  ./run.sh tensorboard"
-    else
-        echo "❌ No logs directory found"
-        echo "Make sure training has been started and logs exist"
     fi
 }
 
@@ -194,9 +173,6 @@ case $ACTION in
         ;;
     results)
         show_results
-        ;;
-    tensorboard)
-        open_tensorboard
         ;;
     health)
         check_health
