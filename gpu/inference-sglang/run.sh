@@ -138,6 +138,9 @@ start_service() {
         echo "Creating and starting new container..."
         nerdctl run -d \
             --gpus all \
+            --ipc=host \
+            --ulimit memlock=-1 \
+            --ulimit stack=67108864 \
             --name $CONTAINER_NAME \
             --volume /data/models:/data/models \
             -p $HOST_PORT:$CONTAINER_PORT \
