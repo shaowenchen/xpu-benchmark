@@ -76,7 +76,13 @@ class ResNet50Trainer:
     
     def _get_model(self):
         if self.args.model == 'resnet50':
-            model = torchvision.models.resnet50(pretrained=self.args.pretrained)
+            # Use new weights API instead of deprecated pretrained parameter
+            if self.args.pretrained:
+                from torchvision.models import ResNet50_Weights
+                weights = ResNet50_Weights.IMAGENET1K_V1
+            else:
+                weights = None
+            model = torchvision.models.resnet50(weights=weights)
             # Modify the final layer for CIFAR-10
             model.fc = nn.Linear(model.fc.in_features, self.args.num_classes)
         else:
@@ -103,7 +109,7 @@ class ResNet50Trainer:
             ])
             
             trainset = torchvision.datasets.MNIST(
-                root=self.args.data_root, train=True, download=False, transform=transform_train
+                root=self.args.data_root, train=True, download=True, transform=transform_train
             )
             train_loader = DataLoader(
                 trainset, batch_size=self.args.batch_size, shuffle=True, 
@@ -111,7 +117,7 @@ class ResNet50Trainer:
             )
             
             testset = torchvision.datasets.MNIST(
-                root=self.args.data_root, train=False, download=False, transform=transform_test
+                root=self.args.data_root, train=False, download=True, transform=transform_test
             )
             test_loader = DataLoader(
                 testset, batch_size=self.args.batch_size, shuffle=False, 
@@ -132,7 +138,7 @@ class ResNet50Trainer:
             ])
             
             trainset = torchvision.datasets.CIFAR10(
-                root=self.args.data_root, train=True, download=False, transform=transform_train
+                root=self.args.data_root, train=True, download=True, transform=transform_train
             )
             train_loader = DataLoader(
                 trainset, batch_size=self.args.batch_size, shuffle=True, 
@@ -140,7 +146,7 @@ class ResNet50Trainer:
             )
             
             testset = torchvision.datasets.CIFAR10(
-                root=self.args.data_root, train=False, download=False, transform=transform_test
+                root=self.args.data_root, train=False, download=True, transform=transform_test
             )
             test_loader = DataLoader(
                 testset, batch_size=self.args.batch_size, shuffle=False, 
@@ -163,7 +169,7 @@ class ResNet50Trainer:
             ])
             
             trainset = torchvision.datasets.FashionMNIST(
-                root=self.args.data_root, train=True, download=False, transform=transform_train
+                root=self.args.data_root, train=True, download=True, transform=transform_train
             )
             train_loader = DataLoader(
                 trainset, batch_size=self.args.batch_size, shuffle=True, 
@@ -171,7 +177,7 @@ class ResNet50Trainer:
             )
             
             testset = torchvision.datasets.FashionMNIST(
-                root=self.args.data_root, train=False, download=False, transform=transform_test
+                root=self.args.data_root, train=False, download=True, transform=transform_test
             )
             test_loader = DataLoader(
                 testset, batch_size=self.args.batch_size, shuffle=False, 
