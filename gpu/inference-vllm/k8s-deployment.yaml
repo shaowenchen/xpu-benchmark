@@ -1,0 +1,114 @@
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vllm-inference
+  namespace: default
+  labels:
+    app: vllm-inference
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: vllm-inference
+  template:
+    metadata:
+      labels:
+        app: vllm-inference
+    spec:
+      containers:
+      - name: vllm-inference
+        image: shaowenchen/xpu-benchmark:gpu-inference-vllm
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8000
+          name: http
+        env:
+        - name: CUDA_VISIBLE_DEVICES
+          value: "0"
+        - name: VLLM_MODEL_PATH
+          value: "/data/models"
+        - name: VLLM_SERVER_ARGS
+          value: "--model /data/models --host 0.0.0.0 --port 8000"
+        resources:
+          requests:
+            nvidia.com/gpu: 1
+            memory: "16Gi"
+            cpu: "4"
+          limits:
+            nvidia.com/gpu: 1
+            memory: "32Gi"
+            cpu: "8"
+        volumeMounts:
+        - name: shared-storage
+          mountPath: /data/models
+          subPath: vllm/models
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 120
+          periodSeconds: 30
+          timeoutSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 60
+          periodSeconds: 10
+          timeoutSeconds: 5
+        command:
+        - python
+        - -m
+        - vllm.entrypoints.openai.api_server
+        - --model
+        - /data/models
+        - --host
+        - "0.0.0.0"
+        - --port
+        - "8000"
+      volumes:
+      - name: shared-storage
+        persistentVolumeClaim:
+          claimName: shared-storage-pvc
+      nodeSelector:
+        accelerator: nvidia-tesla-gpu
+      tolerations:
+      - key: nvidia.com/gpu
+        operator: Exists
+        effect: NoSchedule
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vllm-inference-service
+  namespace: default
+  labels:
+    app: vllm-inference
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8000
+    targetPort: 8000
+    protocol: TCP
+    name: http
+  selector:
+    app: vllm-inference
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vllm-inference-nodeport
+  namespace: default
+  labels:
+    app: vllm-inference
+spec:
+  type: NodePort
+  ports:
+  - port: 8000
+    targetPort: 8000
+    nodePort: 30801
+    protocol: TCP
+    name: http
+  selector:
+    app: vllm-inference 

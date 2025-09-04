@@ -1,0 +1,206 @@
+
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: training-job
+  namespace: default
+  labels:
+    app: training-job
+spec:
+  template:
+    metadata:
+      labels:
+        app: training-job
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: training
+        image: shaowenchen/xpu-benchmark:gpu-training
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: CUDA_VISIBLE_DEVICES
+          value: "0"
+        - name: PYTHONPATH
+          value: "/workspace:$PYTHONPATH"
+        - name: TORCH_HOME
+          value: "/data/models"
+        resources:
+          requests:
+            nvidia.com/gpu: 1
+            memory: "16Gi"
+            cpu: "4"
+          limits:
+            nvidia.com/gpu: 1
+            memory: "32Gi"
+            cpu: "8"
+        volumeMounts:
+        - name: shared-storage
+          mountPath: /data/datasets
+          subPath: training/datasets
+        - name: shared-storage
+          mountPath: /data/models
+          subPath: training/models
+        - name: shared-storage
+          mountPath: /data/logs
+          subPath: training/logs
+        - name: training-scripts
+          mountPath: /workspace
+        command:
+        - python
+        - train_resnet50.py
+        - --batch-size
+        - "128"
+        - --epochs
+        - "10"
+        - --lr
+        - "0.001"
+      volumes:
+      - name: shared-storage
+        persistentVolumeClaim:
+          claimName: shared-storage-pvc
+      - name: training-scripts
+        configMap:
+          name: training-scripts
+      nodeSelector:
+        accelerator: nvidia-tesla-gpu
+      tolerations:
+      - key: nvidia.com/gpu
+        operator: Exists
+        effect: NoSchedule
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: training-benchmark
+  namespace: default
+  labels:
+    app: training-benchmark
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: training-benchmark
+  template:
+    metadata:
+      labels:
+        app: training-benchmark
+    spec:
+      containers:
+      - name: training-benchmark
+        image: shaowenchen/xpu-benchmark:gpu-training
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 6006
+          name: tensorboard
+        env:
+        - name: CUDA_VISIBLE_DEVICES
+          value: "0"
+        - name: PYTHONPATH
+          value: "/workspace:$PYTHONPATH"
+        - name: TORCH_HOME
+          value: "/data/models"
+        resources:
+          requests:
+            nvidia.com/gpu: 1
+            memory: "16Gi"
+            cpu: "4"
+          limits:
+            nvidia.com/gpu: 1
+            memory: "32Gi"
+            cpu: "8"
+        volumeMounts:
+        - name: shared-storage
+          mountPath: /data/datasets
+          subPath: training/datasets
+        - name: shared-storage
+          mountPath: /data/models
+          subPath: training/models
+        - name: shared-storage
+          mountPath: /data/logs
+          subPath: training/logs
+        - name: training-scripts
+          mountPath: /workspace
+        command:
+        - python
+        - benchmark.py
+        - --mode
+        - continuous
+        - --log-dir
+        - /data/logs
+        livenessProbe:
+          exec:
+            command:
+            - python
+            - -c
+            - "import torch; print('CUDA available:', torch.cuda.is_available())"
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 10
+        readinessProbe:
+          exec:
+            command:
+            - python
+            - -c
+            - "import torch; print('CUDA available:', torch.cuda.is_available())"
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+      volumes:
+      - name: shared-storage
+        persistentVolumeClaim:
+          claimName: shared-storage-pvc
+      - name: training-scripts
+        configMap:
+          name: training-scripts
+      nodeSelector:
+        accelerator: nvidia-tesla-gpu
+      tolerations:
+      - key: nvidia.com/gpu
+        operator: Exists
+        effect: NoSchedule
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: training-scripts
+  namespace: default
+data:
+  train_resnet50.py: |
+    # Training script content will be mounted from the actual file
+  benchmark.py: |
+    # Benchmark script content will be mounted from the actual file
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: training-tensorboard-service
+  namespace: default
+  labels:
+    app: training-benchmark
+spec:
+  type: ClusterIP
+  ports:
+  - port: 6006
+    targetPort: 6006
+    protocol: TCP
+    name: tensorboard
+  selector:
+    app: training-benchmark
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: training-tensorboard-nodeport
+  namespace: default
+  labels:
+    app: training-benchmark
+spec:
+  type: NodePort
+  ports:
+  - port: 6006
+    targetPort: 6006
+    nodePort: 30606
+    protocol: TCP
+    name: tensorboard
+  selector:
+    app: training-benchmark 

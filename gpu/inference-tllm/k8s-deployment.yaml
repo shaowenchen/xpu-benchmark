@@ -1,0 +1,144 @@
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tllm-config
+  namespace: default
+data:
+  extra-llm-api-config.yml: |
+    # TensorRT-LLM API Configuration
+    api:
+      timeout: 60
+      max_requests: 100
+    model:
+      max_batch_size: 128
+      max_num_tokens: 16384
+    memory:
+      kv_cache_free_gpu_memory_fraction: 0.95
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tllm-inference
+  namespace: default
+  labels:
+    app: tllm-inference
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tllm-inference
+  template:
+    metadata:
+      labels:
+        app: tllm-inference
+    spec:
+      containers:
+      - name: tllm-inference
+        image: shaowenchen/xpu-benchmark:gpu-inference-tllm
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8000
+          name: http
+        env:
+        - name: CUDA_VISIBLE_DEVICES
+          value: "0"
+        - name: TLLM_MODEL_PATH
+          value: "/data/models"
+        - name: TLLM_SERVER_ARGS
+          value: "--model /data/models --host 0.0.0.0 --port 8000"
+        resources:
+          requests:
+            nvidia.com/gpu: 1
+            memory: "16Gi"
+            cpu: "4"
+          limits:
+            nvidia.com/gpu: 1
+            memory: "32Gi"
+            cpu: "8"
+        volumeMounts:
+        - name: shared-storage
+          mountPath: /data/models
+          subPath: tllm/models
+        - name: config-volume
+          mountPath: /etc/extra-llm-api-config.yml
+          subPath: extra-llm-api-config.yml
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 120
+          periodSeconds: 30
+          timeoutSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 60
+          periodSeconds: 10
+          timeoutSeconds: 5
+        command:
+        - trtllm-serve
+        - /data/models
+        - --host
+        - "0.0.0.0"
+        - --port
+        - "8000"
+        - --backend
+        - pytorch
+        - --max_batch_size
+        - "128"
+        - --max_num_tokens
+        - "16384"
+        - --kv_cache_free_gpu_memory_fraction
+        - "0.95"
+        - --extra_llm_api_options
+        - /etc/extra-llm-api-config.yml
+      volumes:
+      - name: shared-storage
+        persistentVolumeClaim:
+          claimName: shared-storage-pvc
+      - name: config-volume
+        configMap:
+          name: tllm-config
+      nodeSelector:
+        accelerator: nvidia-tesla-gpu
+      tolerations:
+      - key: nvidia.com/gpu
+        operator: Exists
+        effect: NoSchedule
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: tllm-inference-service
+  namespace: default
+  labels:
+    app: tllm-inference
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8000
+    targetPort: 8000
+    protocol: TCP
+    name: http
+  selector:
+    app: tllm-inference
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: tllm-inference-nodeport
+  namespace: default
+  labels:
+    app: tllm-inference
+spec:
+  type: NodePort
+  ports:
+  - port: 8000
+    targetPort: 8000
+    nodePort: 30802
+    protocol: TCP
+    name: http
+  selector:
+    app: tllm-inference 

@@ -6,7 +6,8 @@
 set -e
 
 # Default configuration
-IMAGE_NAME="shaowenchen/xpu-benchmark:gpu-inference-vllm"
+IMAGE_NAME_DEFAULT="shaowenchen/xpu-benchmark:gpu-inference-vllm"
+IMAGE_NAME_ALIYUN="registry.cn-beijing.aliyuncs.com/opshub/shaowenchen-xpu-benchmark:gpu-inference-vllm"
 CONTAINER_NAME="xpu-benchmark-gpu-inference-vllm"
 HOST_PORT=8000
 CONTAINER_PORT=8000

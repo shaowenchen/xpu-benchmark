@@ -1,0 +1,117 @@
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sglang-inference
+  namespace: default
+  labels:
+    app: sglang-inference
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sglang-inference
+  template:
+    metadata:
+      labels:
+        app: sglang-inference
+    spec:
+      containers:
+      - name: sglang-inference
+        image: shaowenchen/xpu-benchmark:gpu-inference-sglang
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8000
+          name: http
+        env:
+        - name: CUDA_VISIBLE_DEVICES
+          value: "0"
+        resources:
+          requests:
+            nvidia.com/gpu: 1
+            memory: "16Gi"
+            cpu: "4"
+          limits:
+            nvidia.com/gpu: 1
+            memory: "32Gi"
+            cpu: "8"
+        volumeMounts:
+        - name: shared-storage
+          mountPath: /data/models
+          subPath: sglang/models
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 120
+          periodSeconds: 30
+          timeoutSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 60
+          periodSeconds: 10
+          timeoutSeconds: 5
+        command:
+        - python3
+        - -m
+        - sglang.launch_server
+        - --model
+        - /data/models
+        - --tp
+        - "1"
+        - --mem-fraction-static
+        - "0.8"
+        - --trust-remote-code
+        - --dtype
+        - bfloat16
+        - --host
+        - "0.0.0.0"
+        - --port
+        - "8000"
+      volumes:
+      - name: shared-storage
+        persistentVolumeClaim:
+          claimName: shared-storage-pvc
+      nodeSelector:
+        accelerator: nvidia-tesla-gpu
+      tolerations:
+      - key: nvidia.com/gpu
+        operator: Exists
+        effect: NoSchedule
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sglang-inference-service
+  namespace: default
+  labels:
+    app: sglang-inference
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8000
+    targetPort: 8000
+    protocol: TCP
+    name: http
+  selector:
+    app: sglang-inference
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sglang-inference-nodeport
+  namespace: default
+  labels:
+    app: sglang-inference
+spec:
+  type: NodePort
+  ports:
+  - port: 8000
+    targetPort: 8000
+    nodePort: 30800
+    protocol: TCP
+    name: http
+  selector:
+    app: sglang-inference 

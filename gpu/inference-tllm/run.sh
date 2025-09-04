@@ -6,7 +6,8 @@
 set -e
 
 # Default configuration
-IMAGE_NAME="shaowenchen/xpu-benchmark:gpu-inference-tllm"
+IMAGE_NAME_DEFAULT="shaowenchen/xpu-benchmark:gpu-inference-tllm"
+IMAGE_NAME_ALIYUN="registry.cn-beijing.aliyuncs.com/opshub/shaowenchen-xpu-benchmark:gpu-inference-tllm"
 CONTAINER_NAME="xpu-benchmark-gpu-inference-tllm"
 HOST_PORT=8000
 CONTAINER_PORT=8000
@@ -17,9 +18,14 @@ START_MODE=false
 STOP_MODE=false
 STATUS_MODE=false
 MODEL_PATH=""
+REGISTRY="docker.io"
 
 while [[ $# -gt 0 ]]; do
     case $1 in
+    --registry)
+        REGISTRY="$2"
+        shift 2
+        ;;
     start)
         START_MODE=true
         if [ -n "$2" ] && [[ ! "$2" =~ ^- ]]; then
@@ -38,9 +44,10 @@ while [[ $# -gt 0 ]]; do
         shift
         ;;
     --help | -h)
-        echo "Usage: $0 [start [model_dir]|stop|status]"
+        echo "Usage: $0 [--registry <registry>] [start [model_dir]|stop|status]"
         echo ""
         echo "Options:"
+        echo "  --registry <registry>  Specify image registry (docker.io or aliyun)"
         echo "  start [model_dir]     Start TLLM server with local model dir"
         echo "                        If no model_dir specified, lists available models"
         echo "  stop                  Stop TLLM server"
@@ -48,7 +55,8 @@ while [[ $# -gt 0 ]]; do
         echo "  --help, -h            Show this help message"
         echo ""
         echo "Examples:"
-        echo "  $0 start                      # List available models"
+        echo "  $0 --registry docker.io start                      # List available models"
+        echo "  $0 --registry aliyun start                      # List available models"
         echo "  $0 start Qwen2.5-7B-Instruct # Start with specific model"
         echo "  $0 stop                       # Stop the service"
         exit 0
@@ -60,6 +68,12 @@ while [[ $# -gt 0 ]]; do
         ;;
     esac
 done
+
+if [ "$REGISTRY" = "aliyun" ]; then
+    IMAGE_NAME="$IMAGE_NAME_ALIYUN"
+else
+    IMAGE_NAME="$IMAGE_NAME_DEFAULT"
+fi
 
 # List available models
 list_models() {
@@ -241,4 +255,3 @@ else
     echo "Examples:"
     echo "  $0 start                      # List available models"
     echo "  $0 start Qwen2.5-7B-Instruct # Start with specific model"
-fi
