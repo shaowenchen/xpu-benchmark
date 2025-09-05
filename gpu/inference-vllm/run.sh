@@ -21,9 +21,14 @@ MODEL_MODE=false
 STATUS_MODE=false
 MODEL_PATH=""
 DEBUG_MODE=false
+REGISTRY="docker"
 
 while [[ $# -gt 0 ]]; do
     case $1 in
+    --registry)
+        REGISTRY="$2"
+        shift 2
+        ;;
     start)
         START_MODE=true
         if [ -n "$2" ] && [[ ! "$2" =~ ^- ]]; then
@@ -59,9 +64,10 @@ while [[ $# -gt 0 ]]; do
         shift
         ;;
     --help | -h)
-        echo "Usage: $0 start [model_dir] [--debug]|stop|status|--model [model_url]"
+        echo "Usage: $0 [--registry <registry>] start [model_dir] [--debug]|stop|status|--model [model_url]"
         echo ""
         echo "Options:"
+        echo "  --registry <registry>  Specify image registry (docker or aliyun)"
         echo "  --debug               Run container in debug mode (sleep infinity)"
         echo "  start [model_dir]     Start vLLM server with local model dir"
         echo "                        If no model_dir specified, lists available models"
@@ -71,10 +77,11 @@ while [[ $# -gt 0 ]]; do
         echo "  --help, -h            Show this help message"
         echo ""
         echo "Examples:"
-        echo "  $0 start                      # List available models"
-        echo "  $0 start Qwen2.5-7B-Instruct # Start with specific model"
-        echo "  $0 start --debug               # Start container in debug mode"
-        echo "  $0 stop                       # Stop the service"
+        echo "  $0 --registry docker start               # Use docker registry"
+        echo "  $0 start                                 # List available models"
+        echo "  $0 start Qwen2.5-7B-Instruct            # Start with specific model"
+        echo "  $0 start --debug                         # Start container in debug mode"
+        echo "  $0 stop                                  # Stop the service"
         exit 0
         ;;
     *)
@@ -89,6 +96,13 @@ if [ "$RUNTIME" = "docker" ]; then
     CONTAINER_CMD="docker"
 else
     CONTAINER_CMD="nerdctl"
+fi
+
+# Select image by registry
+if [ "$REGISTRY" = "aliyun" ]; then
+    IMAGE_NAME="$IMAGE_NAME_ALIYUN"
+else
+    IMAGE_NAME="$IMAGE_NAME_DEFAULT"
 fi
 
 # List models in /data directory
