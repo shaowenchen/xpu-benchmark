@@ -20,6 +20,7 @@ STOP_MODE=false
 MODEL_MODE=false
 STATUS_MODE=false
 MODEL_PATH=""
+CMD_OVERRIDE=""
 
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -53,10 +54,15 @@ while [[ $# -gt 0 ]]; do
         RUNTIME="$2"
         shift 2
         ;;
+    --cmd)
+        CMD_OVERRIDE="$2"
+        shift 2
+        ;;
     --help | -h)
-        echo "Usage: $0 [start [model_dir]|stop|status|--model [model_url]]"
+        echo "Usage: $0 [--cmd <command>] [start [model_dir]|stop|status|--model [model_url]]"
         echo ""
         echo "Options:"
+        echo "  --cmd <command>       Override container start command"
         echo "  start [model_dir]     Start vLLM server with local model dir"
         echo "                        If no model_dir specified, lists available models"
         echo "  stop                  Stop vLLM server"
@@ -67,6 +73,7 @@ while [[ $# -gt 0 ]]; do
         echo "Examples:"
         echo "  $0 start                      # List available models"
         echo "  $0 start Qwen2.5-7B-Instruct # Start with specific model"
+        echo "  $0 --cmd 'python3 -m vllm.entrypoints.openai.api_server --model /data/models/Qwen2.5-7B-Instruct --host 0.0.0.0 --port 8000' start Qwen2.5-7B-Instruct"
         echo "  $0 stop                       # Stop the service"
         exit 0
         ;;
@@ -159,6 +166,14 @@ start_service() {
         fi
     else
         echo "Creating and starting new container..."
+        # Build start command (default or overridden)
+        local START_COMMAND
+        if [ -n "$CMD_OVERRIDE" ]; then
+            START_COMMAND="$CMD_OVERRIDE"
+        else
+            START_COMMAND="python3 -m vllm.entrypoints.openai.api_server --model /data/models/$model_to_serve --host 0.0.0.0 --port $CONTAINER_PORT"
+        fi
+
         $CONTAINER_CMD run -d \
             --gpus all \
             --ipc=host \
@@ -168,7 +183,7 @@ start_service() {
             --volume /data/models:/data/models \
             -p $HOST_PORT:$CONTAINER_PORT \
             $IMAGE_NAME \
-            --model /data/models/$model_to_serve
+            bash -lc "$START_COMMAND"
     fi
 
     # Show container information

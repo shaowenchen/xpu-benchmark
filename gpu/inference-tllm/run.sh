@@ -20,6 +20,7 @@ STOP_MODE=false
 STATUS_MODE=false
 MODEL_PATH=""
 REGISTRY="docker"
+CMD_OVERRIDE=""
 
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -29,6 +30,10 @@ while [[ $# -gt 0 ]]; do
         ;;
     --runtime)
         RUNTIME="$2"
+        shift 2
+        ;;
+    --cmd)
+        CMD_OVERRIDE="$2"
         shift 2
         ;;
     start)
@@ -49,10 +54,12 @@ while [[ $# -gt 0 ]]; do
         shift
         ;;
     --help | -h)
-        echo "Usage: $0 [--registry <registry>] [start [model_dir]|stop|status]"
+        echo "Usage: $0 [--registry <registry>] [--runtime <runtime>] [--cmd <command>] [start [model_dir]|stop|status]"
         echo ""
         echo "Options:"
         echo "  --registry <registry>  Specify image registry (docker or aliyun)"
+        echo "  --runtime <runtime>   Specify container runtime (docker or containerd)"
+        echo "  --cmd <command>       Override container start command"
         echo "  start [model_dir]     Start TLLM server with local model dir"
         echo "                        If no model_dir specified, lists available models"
         echo "  stop                  Stop TLLM server"
@@ -63,6 +70,7 @@ while [[ $# -gt 0 ]]; do
         echo "  $0 --registry docker start                      # List available models"
         echo "  $0 --registry aliyun start                      # List available models"
         echo "  $0 start Qwen2.5-7B-Instruct # Start with specific model"
+        echo "  $0 --cmd 'trtllm-serve /data/models/Qwen2.5-7B-Instruct --host 0.0.0.0 --port 8000' start Qwen2.5-7B-Instruct"
         echo "  $0 stop                       # Stop the service"
         exit 0
         ;;
@@ -161,6 +169,14 @@ start_service() {
         fi
     else
         echo "Creating and starting new container..."
+        # Build start command (default or overridden)
+        local START_COMMAND
+        if [ -n "$CMD_OVERRIDE" ]; then
+            START_COMMAND="$CMD_OVERRIDE"
+        else
+            START_COMMAND="trtllm-serve /data/models/$model_to_serve --host 0.0.0.0 --port $CONTAINER_PORT --backend pytorch --max_batch_size 128 --max_num_tokens 16384 --kv_cache_free_gpu_memory_fraction 0.95 --extra_llm_api_options /etc/extra-llm-api-config.yml"
+        fi
+
         $CONTAINER_CMD run -d \
             --gpus all \
             --ipc=host \
@@ -171,15 +187,7 @@ start_service() {
             --volume "$(pwd)/extra-llm-api-config.yml:/etc/extra-llm-api-config.yml" \
             -p $HOST_PORT:$CONTAINER_PORT \
             $IMAGE_NAME \
-            trtllm-serve \
-            /data/models/$model_to_serve \
-            --host 0.0.0.0 \
-            --port $CONTAINER_PORT \
-            --backend pytorch \
-            --max_batch_size 128 \
-            --max_num_tokens 16384 \
-            --kv_cache_free_gpu_memory_fraction 0.95 \
-            --extra_llm_api_options /etc/extra-llm-api-config.yml
+            bash -lc "$START_COMMAND"
     fi
 
     # Show container information

@@ -20,6 +20,7 @@ STOP_MODE=false
 STATUS_MODE=false
 MODEL_PATH=""
 REGISTRY="docker"
+CMD_OVERRIDE=""
 
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -29,6 +30,10 @@ while [[ $# -gt 0 ]]; do
         ;;
     --runtime)
         RUNTIME="$2"
+        shift 2
+        ;;
+    --cmd)
+        CMD_OVERRIDE="$2"
         shift 2
         ;;
     start)
@@ -49,10 +54,12 @@ while [[ $# -gt 0 ]]; do
         shift
         ;;
     --help|-h)
-        echo "Usage: $0 [--registry <registry>] [start [model_dir]|stop|status]"
+        echo "Usage: $0 [--registry <registry>] [--runtime <runtime>] [--cmd <command>] [start [model_dir]|stop|status]"
         echo ""
         echo "Options:"
         echo "  --registry <registry>  Specify image registry (docker or aliyun)"
+        echo "  --runtime <runtime>   Specify container runtime (docker or containerd)"
+        echo "  --cmd <command>       Override container start command"
         echo "  start [model_dir]     Start SGLang server with local model dir"
         echo "                        If no model_dir specified, lists available models"
         echo "  stop                  Stop SGLang server"
@@ -62,6 +69,7 @@ while [[ $# -gt 0 ]]; do
         echo "Examples:"
         echo "  $0 --registry docker start                      # List available models"
         echo "  $0 start Qwen2.5-7B-Instruct # Start with specific model"
+        echo "  $0 --cmd 'python3 -m sglang.launch_server --model /data/models/Qwen2.5-7B-Instruct --tp 1 --mem-fraction-static 0.8 --trust-remote-code --dtype bfloat16 --host 0.0.0.0 --port 8000' start Qwen2.5-7B-Instruct"
         echo "  $0 stop                       # Stop the service"
         exit 0
         ;;
@@ -160,6 +168,14 @@ start_service() {
         fi
     else
         echo "Creating and starting new container..."
+        # Build start command (default or overridden)
+        local START_COMMAND
+        if [ -n "$CMD_OVERRIDE" ]; then
+            START_COMMAND="$CMD_OVERRIDE"
+        else
+            START_COMMAND="python3 -m sglang.launch_server --model /data/models/$model_to_serve --tp 1 --mem-fraction-static 0.8 --trust-remote-code --dtype bfloat16 --host 0.0.0.0 --port $CONTAINER_PORT"
+        fi
+
         $CONTAINER_CMD run -d \
             --gpus all \
             --ipc=host \
@@ -169,14 +185,7 @@ start_service() {
             --volume /data/models:/data/models \
             -p $HOST_PORT:$CONTAINER_PORT \
             $IMAGE_NAME \
-            python3 -m sglang.launch_server \
-            --model /data/models/$model_to_serve \
-            --tp 1 \
-            --mem-fraction-static 0.8 \
-            --trust-remote-code \
-            --dtype bfloat16 \
-            --host 0.0.0.0 \
-            --port $CONTAINER_PORT
+            bash -lc "$START_COMMAND"
     fi
     
     # Show container information
