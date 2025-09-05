@@ -23,4 +23,4 @@ jobs:
 
       - name: Run build script
         run: |
-          cd ./gpu && ./build.sh --all --push
+          cd ./gpu && ./build.sh all --build --push

@@ -32,5 +32,7 @@ ENV TORCH_HOME=/data/models
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
     CMD python -c "import torch; print('PyTorch:', torch.__version__); print('CUDA available:', torch.cuda.is_available())" || exit 1
 
+ENTRYPOINT []
+
 # Default command
 CMD ["python", "train_resnet50.py"]

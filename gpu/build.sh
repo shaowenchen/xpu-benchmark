@@ -186,7 +186,11 @@ main() {
             fi
         elif [ "$PUSH_IMAGES" = true ]; then
             log_info "Pushing vLLM image..."
-            if $CONTAINER_TOOL push "$REGISTRY/$PROJECT:gpu-inference-vllm"; then
+            if ! $CONTAINER_TOOL image inspect "$REGISTRY/$PROJECT:gpu-inference-vllm" >/dev/null 2>&1; then
+                log_error "Local image not found: $REGISTRY/$PROJECT:gpu-inference-vllm"
+                log_info "Tip: build and push in one step: $0 vllm --build --push"
+                build_failed=true
+            elif $CONTAINER_TOOL push "$REGISTRY/$PROJECT:gpu-inference-vllm"; then
                 log_success "vLLM image pushed successfully"
             else
                 log_error "Failed to push vLLM image"
@@ -202,7 +206,11 @@ main() {
             fi
         elif [ "$PUSH_IMAGES" = true ]; then
             log_info "Pushing TLLM image..."
-            if $CONTAINER_TOOL push "$REGISTRY/$PROJECT:gpu-inference-tllm"; then
+            if ! $CONTAINER_TOOL image inspect "$REGISTRY/$PROJECT:gpu-inference-tllm" >/dev/null 2>&1; then
+                log_error "Local image not found: $REGISTRY/$PROJECT:gpu-inference-tllm"
+                log_info "Tip: build and push in one step: $0 tllm --build --push"
+                build_failed=true
+            elif $CONTAINER_TOOL push "$REGISTRY/$PROJECT:gpu-inference-tllm"; then
                 log_success "TLLM image pushed successfully"
             else
                 log_error "Failed to push TLLM image"
@@ -218,7 +226,11 @@ main() {
             fi
         elif [ "$PUSH_IMAGES" = true ]; then
             log_info "Pushing SGLang image..."
-            if $CONTAINER_TOOL push "$REGISTRY/$PROJECT:gpu-inference-sglang"; then
+            if ! $CONTAINER_TOOL image inspect "$REGISTRY/$PROJECT:gpu-inference-sglang" >/dev/null 2>&1; then
+                log_error "Local image not found: $REGISTRY/$PROJECT:gpu-inference-sglang"
+                log_info "Tip: build and push in one step: $0 sglang --build --push"
+                build_failed=true
+            elif $CONTAINER_TOOL push "$REGISTRY/$PROJECT:gpu-inference-sglang"; then
                 log_success "SGLang image pushed successfully"
             else
                 log_error "Failed to push SGLang image"
@@ -234,7 +246,11 @@ main() {
             fi
         elif [ "$PUSH_IMAGES" = true ]; then
             log_info "Pushing Training image..."
-            if $CONTAINER_TOOL push "$REGISTRY/$PROJECT:gpu-training"; then
+            if ! $CONTAINER_TOOL image inspect "$REGISTRY/$PROJECT:gpu-training" >/dev/null 2>&1; then
+                log_error "Local image not found: $REGISTRY/$PROJECT:gpu-training"
+                log_info "Tip: build and push in one step: $0 training --build --push"
+                build_failed=true
+            elif $CONTAINER_TOOL push "$REGISTRY/$PROJECT:gpu-training"; then
                 log_success "Training image pushed successfully"
             else
                 log_error "Failed to push Training image"
