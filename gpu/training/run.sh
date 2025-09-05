@@ -15,7 +15,7 @@ START_MODE=false
 STOP_MODE=false
 STATUS_MODE=false
 BENCHMARK_MODE=false
-TRAIN_ARGS=""
+CMD_OVERRIDE=""
 
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -39,37 +39,9 @@ while [[ $# -gt 0 ]]; do
         GPU_DEVICE="$2"
         shift 2
         ;;
-    --epochs)
-        TRAIN_ARGS="$TRAIN_ARGS --epochs $2"
+    --cmd)
+        CMD_OVERRIDE="$2"
         shift 2
-        ;;
-    --batch-size)
-        TRAIN_ARGS="$TRAIN_ARGS --batch-size $2"
-        shift 2
-        ;;
-    --lr)
-        TRAIN_ARGS="$TRAIN_ARGS --lr $2"
-        shift 2
-        ;;
-    --dataset)
-        TRAIN_ARGS="$TRAIN_ARGS --dataset $2"
-        shift 2
-        ;;
-    --data-root)
-        TRAIN_ARGS="$TRAIN_ARGS --data-root $2"
-        shift 2
-        ;;
-    --mixed-precision)
-        TRAIN_ARGS="$TRAIN_ARGS --mixed-precision"
-        shift
-        ;;
-    --pretrained)
-        TRAIN_ARGS="$TRAIN_ARGS --pretrained"
-        shift
-        ;;
-    --save-model)
-        TRAIN_ARGS="$TRAIN_ARGS --save-model"
-        shift
         ;;
     --help | -h)
         echo "Usage: $0 [start|stop|status|benchmark] [options]"
@@ -80,28 +52,17 @@ while [[ $# -gt 0 ]]; do
         echo "  status               Check container status"
         echo "  benchmark            Run benchmark test"
         echo ""
-        echo "System Options:"
-        echo "  --gpu DEVICE         GPU device to use (0, 1, 2, ... or 'all', default: all)"
-        echo ""
-        echo "Training Options:"
-        echo "  --epochs N           Number of training epochs (default: 10)"
-        echo "  --batch-size N       Batch size (default: 128)"
-        echo "  --lr F               Learning rate (default: 0.001)"
-        echo "  --dataset NAME       Dataset to use (mnist, cifar10, fashion-mnist, default: mnist)"
-        echo "  --data-root PATH     Data root path (default: /data)"
-        echo "  --mixed-precision    Enable mixed precision training"
-        echo "  --pretrained         Use pretrained model"
-        echo "  --save-model         Save trained model"
+        echo "Options:"
+        echo "  --gpu DEVICE         GPU device to use (0,1,2,... or 'all', default: all)"
+        echo "  --cmd COMMAND        Override container start command"
+        echo "  --help, -h           Show this help message"
         echo ""
         echo "Examples:"
-        echo "  $0 start                                    # Start basic training (MNIST, all GPUs)"
-        echo "  $0 start --gpu 0                           # Use GPU 0 only"
-        echo "  $0 start --gpu 1 --dataset cifar10         # Use GPU 1 with CIFAR-10"
-        echo "  $0 start --epochs 20 --batch-size 64       # Custom training"
-        echo "  $0 start --dataset fashion-mnist           # Train on Fashion-MNIST"
-        echo "  $0 start --mixed-precision --pretrained    # Fast training"
-        echo "  $0 benchmark                               # Run benchmark"
-        echo "  $0 stop                                    # Stop training"
+        echo "  $0 start                                 # Start training with default command"
+        echo "  $0 start --gpu 0                         # Use GPU 0 only"
+        echo "  $0 --cmd 'python train_resnet50.py --epochs 20' start  # Custom command"
+        echo "  $0 benchmark                             # Run benchmark"
+        echo "  $0 stop                                  # Stop training"
         exit 0
         ;;
     *)
@@ -147,10 +108,15 @@ start_service() {
     
     echo "Creating and starting training container..."
     echo "GPU device: $GPU_DEVICE"
-    echo "Training arguments: $TRAIN_ARGS"
-    
-    # Build command
-    local cmd="python train_resnet50.py $TRAIN_ARGS"
+
+    # Build start command (default or overridden)
+    local START_COMMAND
+    if [ -n "$CMD_OVERRIDE" ]; then
+        START_COMMAND="$CMD_OVERRIDE"
+    else
+        START_COMMAND="python train_resnet50.py"
+    fi
+    echo "Start command: $START_COMMAND"
     
     # Set CUDA_VISIBLE_DEVICES based on GPU selection
     local cuda_env=""
@@ -167,7 +133,7 @@ start_service() {
         --volume /data:/data \
         $cuda_env \
         $IMAGE_NAME \
-        bash -c "$cmd"
+        bash -lc "$START_COMMAND"
     
     # Show container information
     echo ""
