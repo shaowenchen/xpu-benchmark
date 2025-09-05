@@ -12,18 +12,23 @@ CONTAINER_NAME="xpu-benchmark-gpu-inference-sglang"
 HOST_PORT=8000
 CONTAINER_PORT=8000
 MODEL_PATH=""
+RUNTIME="containerd"
 
 # Parse command line arguments
 START_MODE=false
 STOP_MODE=false
 STATUS_MODE=false
 MODEL_PATH=""
-REGISTRY="docker.io"
+REGISTRY="docker"
 
 while [[ $# -gt 0 ]]; do
     case $1 in
     --registry)
         REGISTRY="$2"
+        shift 2
+        ;;
+    --runtime)
+        RUNTIME="$2"
         shift 2
         ;;
     start)
@@ -47,7 +52,7 @@ while [[ $# -gt 0 ]]; do
         echo "Usage: $0 [--registry <registry>] [start [model_dir]|stop|status]"
         echo ""
         echo "Options:"
-        echo "  --registry <registry>  Specify image registry (docker.io or aliyun)"
+        echo "  --registry <registry>  Specify image registry (docker or aliyun)"
         echo "  start [model_dir]     Start SGLang server with local model dir"
         echo "                        If no model_dir specified, lists available models"
         echo "  stop                  Stop SGLang server"
@@ -55,7 +60,7 @@ while [[ $# -gt 0 ]]; do
         echo "  --help, -h            Show this help message"
         echo ""
         echo "Examples:"
-        echo "  $0 --registry docker.io start                      # List available models"
+        echo "  $0 --registry docker start                      # List available models"
         echo "  $0 start Qwen2.5-7B-Instruct # Start with specific model"
         echo "  $0 stop                       # Stop the service"
         exit 0
@@ -72,6 +77,12 @@ if [ "$REGISTRY" = "aliyun" ]; then
     IMAGE_NAME="$IMAGE_NAME_ALIYUN"
 else
     IMAGE_NAME="$IMAGE_NAME_DEFAULT"
+fi
+
+if [ "$RUNTIME" = "docker" ]; then
+    CONTAINER_CMD="docker"
+else
+    CONTAINER_CMD="nerdctl"
 fi
 
 # List available models
@@ -136,20 +147,20 @@ start_service() {
     echo "Using model: $model_to_serve"
     
     # Check if container already exists
-    if nerdctl ps -a | grep -q "$CONTAINER_NAME"; then
+    if $CONTAINER_CMD ps -a | grep -q "$CONTAINER_NAME"; then
         echo "Container $CONTAINER_NAME already exists"
-        if nerdctl ps | grep -q "$CONTAINER_NAME"; then
+        if $CONTAINER_CMD ps | grep -q "$CONTAINER_NAME"; then
             echo "Container is already running"
-            echo "Container ID: $(nerdctl ps | grep "$CONTAINER_NAME" | awk '{print $1}')"
+            echo "Container ID: $($CONTAINER_CMD ps | grep "$CONTAINER_NAME" | awk '{print $1}')"
             echo "Service URL: http://localhost:$HOST_PORT"
             exit 0
         else
             echo "Starting existing container..."
-            nerdctl start $CONTAINER_NAME
+            $CONTAINER_CMD start $CONTAINER_NAME
         fi
     else
         echo "Creating and starting new container..."
-        nerdctl run -d \
+        $CONTAINER_CMD run -d \
             --gpus all \
             --ipc=host \
             --ulimit memlock=-1 \
@@ -172,7 +183,7 @@ start_service() {
     echo ""
     echo "=== Service Information ==="
     echo "Container name: $CONTAINER_NAME"
-    echo "Container ID: $(nerdctl ps | grep "$CONTAINER_NAME" | awk '{print $1}')"
+    echo "Container ID: $($CONTAINER_CMD ps | grep "$CONTAINER_NAME" | awk '{print $1}')"
     echo "SGLang Server URL: http://localhost:$HOST_PORT"
     echo "Health check: http://localhost:$HOST_PORT/health"
     echo ""
@@ -181,20 +192,20 @@ start_service() {
     echo "You can now:"
     echo "  - Test the API: ./client.sh health"
     echo "  - Stop the service: $0 stop"
-    echo "  - View logs: nerdctl logs -f $CONTAINER_NAME"
+    echo "  - View logs: $CONTAINER_CMD logs -f $CONTAINER_NAME"
 }
 
 # Stop SGLang service
 stop_service() {
     echo "=== Stopping SGLang service ==="
-    if nerdctl ps | grep -q "$CONTAINER_NAME"; then
+    if $CONTAINER_CMD ps | grep -q "$CONTAINER_NAME"; then
         echo "Stopping container $CONTAINER_NAME..."
-        nerdctl stop $CONTAINER_NAME
-        nerdctl rm $CONTAINER_NAME
+        $CONTAINER_CMD stop $CONTAINER_NAME
+        $CONTAINER_CMD rm $CONTAINER_NAME
         echo "✅ Service stopped successfully"
-    elif nerdctl ps -a | grep -q "$CONTAINER_NAME"; then
+    elif $CONTAINER_CMD ps -a | grep -q "$CONTAINER_NAME"; then
         echo "Removing stopped container $CONTAINER_NAME..."
-        nerdctl rm $CONTAINER_NAME
+        $CONTAINER_CMD rm $CONTAINER_NAME
         echo "✅ Container removed successfully"
     else
         echo "ℹ️  No container $CONTAINER_NAME found"
@@ -210,10 +221,10 @@ check_status() {
     echo ""
     
     # Check if container is running
-    if nerdctl ps | grep -q "$CONTAINER_NAME"; then
+    if $CONTAINER_CMD ps | grep -q "$CONTAINER_NAME"; then
         echo "✅ Status: RUNNING"
         # Get container ID using awk
-        local container_id=$(nerdctl ps | grep "$CONTAINER_NAME" | awk '{print $1}')
+        local container_id=$($CONTAINER_CMD ps | grep "$CONTAINER_NAME" | awk '{print $1}')
         if [ -n "$container_id" ]; then
             echo "Container ID: $container_id"
         fi
@@ -221,13 +232,13 @@ check_status() {
         echo "Health check: http://localhost:$HOST_PORT/health"
         echo ""
         echo "Container details:"
-        nerdctl ps | grep "$CONTAINER_NAME" || echo "No details available"
-    elif nerdctl ps -a | grep -q "$CONTAINER_NAME"; then
+        $CONTAINER_CMD ps | grep "$CONTAINER_NAME" || echo "No details available"
+    elif $CONTAINER_CMD ps -a | grep -q "$CONTAINER_NAME"; then
         echo "⏸️  Status: STOPPED"
         echo "Container exists but is not running"
         echo ""
         echo "Container details:"
-        nerdctl ps -a | grep "$CONTAINER_NAME" || echo "No details available"
+        $CONTAINER_CMD ps -a | grep "$CONTAINER_NAME" || echo "No details available"
     else
         echo "❌ Status: NOT FOUND"
         echo "Container $CONTAINER_NAME does not exist"
