@@ -19,6 +19,8 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
 
 COPY extra-llm-api-config.yml /etc/extra-llm-api-config.yml
 
+ENTRYPOINT []
+
 # Default command using trtllm-serve
 CMD ["trtllm-serve", \
      "/data/models", \
